@@ -24,7 +24,7 @@ Version: 0.1.0 MVP
 
 ## C. Detection
 
-- C1: Synthetic private keys, OpenAI-style tokens, GitHub tokens, passwords and connection strings are critical findings.
+- C1: Synthetic private keys, OpenAI-style tokens, GitHub tokens, passwords and connection strings—including single-line quoted key/value assignments—are critical findings.
 - C2: Synthetic Taiwan ID, phone, email, address, bank and contract identifiers are detected according to published fixture expectations.
 - C3: Local exact-data dictionaries find synthetic customer, employee, project and technical terms using bounded literal matching; dictionary or finding ceilings fail closed without partial-coverage claims.
 - C4: Reports show masked previews only; raw sensitive values do not appear in exported JSON.

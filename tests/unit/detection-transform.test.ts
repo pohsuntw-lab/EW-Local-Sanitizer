@@ -60,11 +60,13 @@ test("classifies synthetic private keys, standalone tokens, passwords and connec
     "ghp_SYNTHETICGITHUBTOKEN1234567890",
     "password=synthetic-password-123",
     "Server=synthetic-db;Password=synthetic-connection-secret;",
+    "\"password\": \"synthetic pass phrase\"",
+    "client_secret='synthetic secret phrase'",
   ].join("\n");
   const findings = detectText(text, context);
   assert.ok(findings.some((finding) => finding.type === "private-key"));
   assert.ok(findings.filter((finding) => finding.type === "api-token").length >= 2);
-  assert.ok(findings.filter((finding) => finding.type === "credential").length >= 2);
+  assert.ok(findings.filter((finding) => finding.type === "credential").length >= 4);
   assert.equal(findings.every((finding) => finding.severity === "critical"), true);
 });
 

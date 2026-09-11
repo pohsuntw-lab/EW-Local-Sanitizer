@@ -16,7 +16,12 @@ const DETECTORS: readonly Detector[] = [
   { name: "private-key-block", type: "private-key", severity: "critical", pattern: /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/g },
   { name: "openai-style-token", type: "api-token", severity: "critical", pattern: /\bsk-[A-Za-z0-9_-]{20,}\b/g },
   { name: "github-token", type: "api-token", severity: "critical", pattern: /\bgh[pousr]_[A-Za-z0-9]{20,}\b/g },
-  { name: "credential-assignment", type: "credential", severity: "critical", pattern: /\b(?:password|passwd|api[_-]?key|access[_-]?token|client[_-]?secret)\s*[:=]\s*["']?[^\s"']{8,}/gi },
+  {
+    name: "credential-assignment",
+    type: "credential",
+    severity: "critical",
+    pattern: /(?<![A-Za-z0-9_])["']?(?:password|passwd|api[_-]?key|access[_-]?token|client[_-]?secret)["']?\s*[:=]\s*(?:"[^"\r\n]{8,}"|'[^'\r\n]{8,}'|[^\s"'`]{8,})/gi,
+  },
   { name: "email", type: "email", severity: "high", pattern: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi },
   { name: "taiwan-mobile", type: "phone", severity: "high", pattern: /(?<!\d)09\d{2}[- ]?\d{3}[- ]?\d{3}(?!\d)/g },
   { name: "taiwan-id-checksum", type: "taiwan-id", severity: "high", pattern: /\b[A-Z][12]\d{8}\b/g, validate: validTaiwanId },
