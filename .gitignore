@@ -1,0 +1,8 @@
+node_modules/
+dist/
+coverage/
+*.log
+*.ewmap
+*-SAFE-PACKAGE.zip
+.DS_Store
+
