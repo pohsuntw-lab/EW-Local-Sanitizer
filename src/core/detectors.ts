@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { isAuthenticDictionarySnapshot, type DictionarySnapshot } from "./dictionary.js";
 import { normalizeSensitiveValue } from "./normalization.js";
+import { MAX_FINDINGS_PER_FILE } from "./policy.js";
 import type { Finding, FindingType, Severity } from "./types.js";
 
 interface Detector {
@@ -36,10 +37,11 @@ export function detectText(text: string, context: DetectionContext): Finding[] {
     detector.pattern.lastIndex = 0;
     for (const match of text.matchAll(detector.pattern)) {
       if (match.index === undefined || !match[0] || (detector.validate && !detector.validate(match[0]))) continue;
+      if (findings.length >= MAX_FINDINGS_PER_FILE) throw new Error("Finding limit exceeded; detection coverage is incomplete");
       findings.push(makeFinding(detector.type, detector.severity, match.index, match.index + match[0].length, match[0], detector.name));
     }
   }
-  findings.push(...detectDictionaryTerms(text, context.dictionary));
+  findings.push(...detectDictionaryTerms(text, context.dictionary, MAX_FINDINGS_PER_FILE - findings.length));
   return removeOverlaps(findings);
 }
 
@@ -48,19 +50,57 @@ export function maskValue(value: string): string {
   return `${value.slice(0, 2)}${"•".repeat(Math.min(8, value.length - 4))}${value.slice(-2)}`;
 }
 
-function detectDictionaryTerms(text: string, dictionary: DictionarySnapshot): Finding[] {
+function detectDictionaryTerms(text: string, dictionary: DictionarySnapshot, remaining: number): Finding[] {
   const findings: Finding[] = [];
   const indexed = buildNormalizedIndex(text, dictionary);
-  for (const term of dictionary.normalizedTerms) {
-    let normalizedIndex = 0;
-    while ((normalizedIndex = indexed.value.indexOf(term, normalizedIndex)) !== -1) {
+  const nodes = buildTermTrie(dictionary.normalizedTerms);
+  let state = 0;
+  for (let index = 0; index < indexed.value.length; index += 1) {
+    const unit = indexed.value[index] ?? "";
+    while (state !== 0 && !nodes[state]?.next.has(unit)) state = nodes[state]?.fail ?? 0;
+    state = nodes[state]?.next.get(unit) ?? 0;
+    for (const termLength of nodes[state]?.outputs ?? []) {
+      if (findings.length >= remaining) throw new Error("Finding limit exceeded; detection coverage is incomplete");
+      const normalizedIndex = index - termLength + 1;
       const start = indexed.starts[normalizedIndex];
-      const end = indexed.ends[normalizedIndex + term.length - 1];
+      const end = indexed.ends[index];
       if (start !== undefined && end !== undefined) findings.push(makeFinding("exact-data", "high", start, end, text.slice(start, end), "local-exact-data"));
-      normalizedIndex += Math.max(1, term.length);
     }
   }
   return findings;
+}
+
+interface TermTrieNode { next: Map<string, number>; fail: number; outputs: number[] }
+
+function buildTermTrie(terms: readonly string[]): TermTrieNode[] {
+  const nodes: TermTrieNode[] = [{ next: new Map(), fail: 0, outputs: [] }];
+  for (const term of terms) {
+    let node = 0;
+    for (let index = 0; index < term.length; index += 1) {
+      const unit = term[index] ?? "";
+      let next = nodes[node]?.next.get(unit);
+      if (next === undefined) {
+        next = nodes.length;
+        nodes[node]?.next.set(unit, next);
+        nodes.push({ next: new Map(), fail: 0, outputs: [] });
+      }
+      node = next;
+    }
+    nodes[node]?.outputs.push(term.length);
+  }
+  const queue = [...(nodes[0]?.next.values() ?? [])];
+  for (let cursor = 0; cursor < queue.length; cursor += 1) {
+    const node = queue[cursor] ?? 0;
+    for (const [unit, child] of nodes[node]?.next ?? []) {
+      queue.push(child);
+      let fallback = nodes[node]?.fail ?? 0;
+      while (fallback !== 0 && !nodes[fallback]?.next.has(unit)) fallback = nodes[fallback]?.fail ?? 0;
+      const target = nodes[fallback]?.next.get(unit);
+      nodes[child]!.fail = target === child || target === undefined ? 0 : target;
+      nodes[child]!.outputs.push(...(nodes[nodes[child]!.fail]?.outputs ?? []));
+    }
+  }
+  return nodes;
 }
 
 function buildNormalizedIndex(text: string, dictionary: DictionarySnapshot): { value: string; starts: number[]; ends: number[] } {

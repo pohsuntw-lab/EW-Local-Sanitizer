@@ -103,6 +103,7 @@ The encrypted project token registry gives the same normalized original the same
 - Only explicitly supported Unicode encodings are accepted; unreliable decoding fails closed.
 - Extension is never the sole format signal. Binary content, unsupported formats and uncertain coverage block export.
 - Dictionary matching uses Unicode NFKC, trimmed/collapsed whitespace and a configurable Latin case rule. Aliases are explicit and fuzzy matching is disabled.
+- Exact-data dictionaries and per-file finding output have explicit resource ceilings; exceeding a ceiling fails closed instead of returning partial coverage.
 
 ## MVP screens
 

@@ -77,6 +77,7 @@ export interface UnresolvedItem {
 
 export interface TransformResult {
   projectId: string;
+  findingCount: number;
   sanitizedText: string;
   sourceTextHash: string;
   publicFindings: readonly PublicFinding[];

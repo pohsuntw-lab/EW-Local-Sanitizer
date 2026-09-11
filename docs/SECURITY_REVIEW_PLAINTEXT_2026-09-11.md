@@ -19,6 +19,8 @@ Scope: phase 0 and phase 1 on `codex/plaintext-hardening-v0.1`. The review did n
 | High | A project token registry could be deliberately reused with a different verification project ID. | The encrypted registry now records a project UUID, transformations inherit that binding and verification rejects cross-project reuse. Restored entries are also checked against their HMAC-derived token. |
 | Medium | Unused ZIP timestamp/version/attribute fields were not canonicalized and could carry hidden metadata. | Inspection now requires the exact canonical header emitted by the writer; every single-byte mutation and every truncation of a baseline archive is rejected in the tamper fixture matrix. |
 | Medium | File-count and per-file limits still permitted excessive aggregate memory use. | The versioned policy now caps total session source bytes at 100 MiB and completed Safe Package bytes at 128 MiB; source rechecks reject size changes before reading content. |
+| High | Dictionary matching scaled by terms × input and dictionary/finding counts were unbounded, permitting resource exhaustion or partial processing pressure. | Exact-data matching now uses a literal failure-link trie, and versioned limits bound entries, aliases, term volume and findings; limit exhaustion fails closed. |
+| Medium | A failed filesystem write could leave a partial ZIP, checksum or receipt, while existing-target conflicts required explicit preservation evidence. | Exclusive writes now track whether this call created the file, sync successful bytes and remove call-created partials after failure. Tests prove existing files are not overwritten and conflict cleanup is scoped. |
 
 ## Residual risks and release gates
 

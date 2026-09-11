@@ -1,4 +1,4 @@
-import { writeFileSync } from "node:fs";
+import { writeExclusiveFile } from "./exclusive-write.js";
 import { MAX_SAFE_PACKAGE_BYTES, MAX_SAFE_PACKAGE_ENTRIES, MAX_ZIP_ENTRY_BYTES } from "./policy.js";
 
 export interface ZipEntry { name: string; data: Buffer }
@@ -36,7 +36,7 @@ export function writeStoreZip(path: string, entries: readonly ZipEntry[]): void 
   end.writeUInt32LE(centralData.length, 12); end.writeUInt32LE(offset, 16);
   if (offset + centralData.length + end.length > MAX_SAFE_PACKAGE_BYTES) throw new Error("ZIP exceeds aggregate size policy");
   const archive = Buffer.concat([...localParts, centralData, end]);
-  writeFileSync(path, archive, { flag: "wx", mode: 0o600 });
+  writeExclusiveFile(path, archive);
 }
 
 export function inspectStoreZip(buffer: Buffer, allowlist: ReadonlySet<string>): InspectedZipEntry[] {

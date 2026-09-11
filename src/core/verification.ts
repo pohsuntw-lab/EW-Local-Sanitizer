@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { detectText, type DetectionContext } from "./detectors.js";
 import { isAuthenticDictionarySnapshot } from "./dictionary.js";
 import { assertSessionFileCount, assertSessionTotalBytes, isAuthenticSource, sourceHashStillMatches, type PlainTextSource } from "./intake.js";
-import { PLAIN_TEXT_POLICY_VERSION, isBlockingSeverity, routeAllowed } from "./policy.js";
+import { PLAIN_TEXT_POLICY_VERSION, assertSessionFindingCount, isBlockingSeverity, routeAllowed } from "./policy.js";
 import { isAuthenticTransformation } from "./transform.js";
 import type { AllowedRoute, Classification, PublicFinding, TransformResult, UnresolvedItem } from "./types.js";
 
@@ -74,6 +74,7 @@ export type VerificationOutcome =
 export function verifyForExport(request: VerificationRequest): VerificationOutcome {
   assertSessionFileCount(request.items.length);
   assertSessionTotalBytes(request.items.map((item) => item.source.size));
+  assertSessionFindingCount(request.items.reduce((total, item) => total + item.transformation.findingCount, 0));
   const unresolved: UnresolvedItem[] = [];
   if (!isUuid(request.projectId)) throw new Error("Project ID must be a UUID");
   if (!isAuthenticDictionarySnapshot(request.detection.dictionary)) throw new Error("Untrusted dictionary snapshot");

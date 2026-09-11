@@ -61,6 +61,8 @@ Every finding contains a session-random UUID `finding_id`, type, severity, sourc
 
 Project dictionaries are encrypted local artifacts. Matching normalizes Unicode with NFKC, trims and collapses whitespace, applies the configured Latin case rule and supports explicit aliases only. Fuzzy matching is disabled for the MVP. A dictionary snapshot version and hash bind both scans; only those identifiers enter the manifest.
 
+Exact-data matching uses a literal trie with failure links so scan cost is linear in normalized input plus reported matches. Versioned policy limits bound dictionary entries, aliases, normalized term volume and findings per file; exceeding a limit is incomplete coverage and fails closed.
+
 ### 4. Policy and classification
 
 Suggests P0-P3 but requires a user decision. Hard rules:
@@ -96,6 +98,7 @@ JavaScript strings, values retained by callers and runtime-managed copies cannot
 - Confirms no unresolved high/critical findings.
 - Builds deterministic manifest and sanitized DLP report.
 - Creates the Safe Package from an allowlist, not by zipping a working directory.
+- Writes the ZIP, checksum and receipt exclusively with cleanup of call-created partial files on write failure; existing targets are never overwritten.
 - Runs ZIP entry inspection after creation.
 - Packaging accepts only an opaque verified-export capability created by verification; arbitrary text cannot be passed directly to the packager.
 - Reopens the ZIP and checks the allowlist, duplicates, traversal/hidden names, canonical metadata headers, entry sizes and a 128 MiB aggregate package bound. The SHA-256 of the actual completed ZIP bytes is written to a sibling `.sha256` file and local receipt, never into the ZIP itself.

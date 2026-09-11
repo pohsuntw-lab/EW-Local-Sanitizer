@@ -26,7 +26,7 @@ Version: 0.1.0 MVP
 
 - C1: Synthetic private keys, OpenAI-style tokens, GitHub tokens, passwords and connection strings are critical findings.
 - C2: Synthetic Taiwan ID, phone, email, address, bank and contract identifiers are detected according to published fixture expectations.
-- C3: Local exact-data dictionaries find synthetic customer, employee, project and technical terms.
+- C3: Local exact-data dictionaries find synthetic customer, employee, project and technical terms using bounded literal matching; dictionary or finding ceilings fail closed without partial-coverage claims.
 - C4: Reports show masked previews only; raw sensitive values do not appear in exported JSON.
 - C5: No-finding output states that absence of detection is not proof of safety.
 - C6: Finding IDs are random/session-scoped and are not derived from sensitive values.
@@ -73,6 +73,7 @@ For v0.1, F6 means local validation against `schemas/ew-safe-package-manifest-v0
 - I2: Read-only intake proves source SHA-256 remains identical before and after processing.
 - I3: The complete plain-text workflow passes with network APIs denied and the source policy scan finds no network/telemetry path.
 - I4: Report reason, token-label and generalization injection attempts fail closed.
+- I5: Existing export targets are never overwritten; write conflicts clean up newly created package artifacts and preserve pre-existing files.
 
 ## G. Windows delivery
 

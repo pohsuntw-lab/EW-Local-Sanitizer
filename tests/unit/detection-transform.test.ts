@@ -7,6 +7,7 @@ import { ProjectTokenRegistry, decryptTokenMap, encryptTokenMap } from "../../sr
 import { decryptLocalSession, encryptLocalSession } from "../../src/core/session-vault.js";
 import { transformText } from "../../src/core/transform.js";
 import type { ReasonCode } from "../../src/core/types.js";
+import { MAX_FINDINGS_PER_FILE, MAX_SESSION_FINDINGS, assertSessionFindingCount } from "../../src/core/policy.js";
 import { dictionary } from "../helpers.js";
 
 test("detects synthetic credentials, checksum-aware PII, commercial IDs and normalized dictionary aliases", () => {
@@ -33,6 +34,22 @@ test("NFKC grapheme normalization matches combining aliases and critical finding
   assert.ok(findings.some((finding) => finding.type === "exact-data" && finding.value.includes("Cafe")));
   assert.ok(findings.some((finding) => finding.type === "credential" && finding.severity === "critical"));
   assert.equal(findings.filter((finding) => finding.value.includes("password")).some((finding) => finding.type === "exact-data"), false);
+});
+
+test("exact-data trie and detector budgets fail closed on abusive input", () => {
+  const invalidDictionary: ProjectDictionary = {
+    formatVersion: "ewdict-1", dictionaryVersion: "v1", latinCaseSensitive: false,
+    entries: [{ canonical: "Synthetic Customer", aliases: Array.from({ length: 17 }, (_, index) => `Synthetic Alias ${index}`) }],
+  };
+  assert.throws(() => createDictionarySnapshot(invalidDictionary), /dictionary entry/);
+  const context = dictionary(["aba", "ba"]);
+  const overlaps = detectText("aba", context);
+  assert.equal(overlaps.length, 1);
+  assert.equal(overlaps[0]?.value, "aba");
+  assert.throws(() => detectText("SyntheticTerm ".repeat(MAX_FINDINGS_PER_FILE + 1), dictionary(["SyntheticTerm"])), /Finding limit/);
+  assert.throws(() => detectText("test.person@example.com\n".repeat(MAX_FINDINGS_PER_FILE + 1), dictionary([])), /Finding limit/);
+  assert.doesNotThrow(() => assertSessionFindingCount(MAX_SESSION_FINDINGS));
+  assert.throws(() => assertSessionFindingCount(MAX_SESSION_FINDINGS + 1), /50,000/);
 });
 
 test("classifies synthetic private keys, standalone tokens, passwords and connection strings as critical", () => {

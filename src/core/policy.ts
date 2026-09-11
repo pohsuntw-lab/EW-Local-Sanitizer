@@ -7,6 +7,13 @@ export const MAX_SESSION_TOTAL_BYTES = 100 * 1024 * 1024;
 export const MAX_ZIP_ENTRY_BYTES = 16 * 1024 * 1024;
 export const MAX_SAFE_PACKAGE_BYTES = 128 * 1024 * 1024;
 export const MAX_SAFE_PACKAGE_ENTRIES = MAX_SESSION_FILES + 3;
+export const MAX_FINDINGS_PER_FILE = 10_000;
+export const MAX_SESSION_FINDINGS = 50_000;
+export const MAX_DICTIONARY_ENTRIES = 5_000;
+export const MAX_DICTIONARY_ALIASES_PER_ENTRY = 16;
+export const MAX_DICTIONARY_TERMS = 10_000;
+export const MAX_DICTIONARY_TERM_CHARS = 256;
+export const MAX_DICTIONARY_TOTAL_CHARS = 1024 * 1024;
 
 export const CONTROLLED_REASON_CODES = new Set<ReasonCode>([
   "PUBLICLY_APPROVED",
@@ -63,6 +70,12 @@ export const GENERALIZATION_RULES: Readonly<Record<string, GeneralizationRule>> 
 
 export function isBlockingSeverity(severity: Severity): boolean {
   return severity === "high" || severity === "critical";
+}
+
+export function assertSessionFindingCount(count: number): void {
+  if (!Number.isSafeInteger(count) || count < 0 || count > MAX_SESSION_FINDINGS) {
+    throw new Error("Session exceeds 50,000-finding policy limit");
+  }
 }
 
 export function routeAllowed(classification: Classification, route: AllowedRoute): boolean {

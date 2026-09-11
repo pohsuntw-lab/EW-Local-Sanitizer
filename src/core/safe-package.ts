@@ -1,7 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
-import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { readFileSync, unlinkSync } from "node:fs";
 import { basename } from "node:path";
 import { assertValidManifest } from "./manifest.js";
+import { writeExclusiveFile } from "./exclusive-write.js";
 import type { PublicFinding } from "./types.js";
 import { assertVerifiedPublicOutput, verifiedPayloadForPackaging, type VerifiedExport } from "./verification.js";
 import { inspectStoreZip, writeStoreZip, type ZipEntry } from "./zip.js";
@@ -105,9 +106,9 @@ export function createSafePackage(capability: VerifiedExport, outputPath: string
       if (!stored || sha256(stored.data) !== sha256(derivative.data)) throw new Error("ZIP derivative hash verification failed");
     }
     const packageHash = sha256(archive);
-    writeFileSync(checksumPath, `${packageHash}  ${basename(outputPath)}\n`, { flag: "wx", mode: 0o600 });
+    writeExclusiveFile(checksumPath, `${packageHash}  ${basename(outputPath)}\n`);
     created.push(checksumPath);
-    writeFileSync(receiptPath, jsonBuffer({
+    writeExclusiveFile(receiptPath, jsonBuffer({
       schema_version: "ew-export-receipt-0.1",
       status: "verified",
       package_file: basename(outputPath),
@@ -115,7 +116,7 @@ export function createSafePackage(capability: VerifiedExport, outputPath: string
       package_sha256: packageHash,
       derivative_sha256: derivativeHashes,
       created_at: verified.verifiedAt,
-    }), { flag: "wx", mode: 0o600 });
+    }));
     created.push(receiptPath);
     return { packageHash, checksumPath, receiptPath, derivativeHashes };
   } catch (error) {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -130,6 +130,13 @@ test("writes allowlisted package, validates actual ZIP SHA-256 and excludes loca
   assert.equal(archive.includes(Buffer.from("Example Foundry")), false);
   assert.equal(archive.includes(Buffer.from(".ewmap")), true);
   assert.equal([...allowlist].some((name) => name.endsWith(".ewmap") || name.endsWith(".sha256")), false);
+  const conflictOutput = join(directory, "conflict-SAFE-PACKAGE.zip");
+  const existingChecksum = `${conflictOutput}.sha256`;
+  writeFileSync(existingChecksum, "pre-existing-safe-metadata");
+  assert.throws(() => createSafePackage(outcome.capability, conflictOutput));
+  assert.equal(readFileSync(existingChecksum, "utf8"), "pre-existing-safe-metadata");
+  assert.equal(existsSync(conflictOutput), false);
+  assert.equal(existsSync(`${conflictOutput}.receipt.json`), false);
 });
 
 test("scans the complete serialized public report before packaging", () => {
@@ -153,6 +160,9 @@ test("ZIP writer and post-write inspector reject duplicate, traversal, hidden, o
   assert.throws(() => writeStoreZip(join(directory, "large.zip"), [{ name: "SAFE_SOURCE/source-001.md", data: Buffer.alloc(16 * 1024 * 1024 + 1) }]), /size policy/);
   const path = join(directory, "valid.zip");
   writeStoreZip(path, [{ name: "SAFE-MANIFEST.json", data: Buffer.from("safe") }]);
+  const baseline = readFileSync(path);
+  assert.throws(() => writeStoreZip(path, [{ name: "SAFE-MANIFEST.json", data: Buffer.from("replacement") }]));
+  assert.deepEqual(readFileSync(path), baseline);
   const tampered = Buffer.from(readFileSync(path));
   const dataOffset = 30 + Buffer.byteLength("SAFE-MANIFEST.json");
   tampered[dataOffset] = (tampered[dataOffset] ?? 0) ^ 0xff;
