@@ -48,9 +48,10 @@ npm run typecheck
 npm test
 npm run test:fixtures
 npm run build
+npm run package:win
 ```
 
-`npm run package:win` remains an intentional failing placeholder until the explicitly authorized Windows packaging phase. The Electron UI may be built and previewed locally, but do not add installer/portable configuration, signing or release automation during this slice.
+`npm run package:win` creates only explicitly labelled unsigned Windows test artifacts. It must keep publishing disabled, refuse signing inputs, hash and inspect outputs, and never be described as a public release.
 
 ## Definition of done
 
