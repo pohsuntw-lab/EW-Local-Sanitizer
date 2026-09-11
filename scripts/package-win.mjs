@@ -7,7 +7,7 @@ import { assertPackagedRuntime, assertWindowsDistributionFiles, recordUnsignedWi
 
 const repositoryRoot = resolve(".");
 const outputDirectory = resolve("release/windows-unsigned-test");
-if (relative(repositoryRoot, outputDirectory) !== "release/windows-unsigned-test") throw new Error("Unsafe Windows output directory");
+if (relative(repositoryRoot, outputDirectory) !== join("release", "windows-unsigned-test")) throw new Error("Unsafe Windows output directory");
 for (const variable of ["CSC_LINK", "CSC_NAME", "WIN_CSC_LINK", "WIN_CSC_KEY_PASSWORD"]) {
   if (process.env[variable]) throw new Error(`Signing input ${variable} is forbidden for the unsigned test build`);
 }
