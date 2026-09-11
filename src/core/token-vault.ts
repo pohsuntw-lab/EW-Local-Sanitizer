@@ -1,5 +1,5 @@
-import { createHmac, randomBytes } from "node:crypto";
-import { decryptEnvelope, encryptEnvelope } from "./crypto-envelope.js";
+import { createHash, createHmac, randomBytes } from "node:crypto";
+import { MAX_ENCRYPTED_ARTIFACT_BYTES, decryptEnvelope, encryptEnvelope } from "./crypto-envelope.js";
 import { normalizeSensitiveValue, type NormalizationPolicy } from "./normalization.js";
 import { validateTokenLabel } from "./policy.js";
 import type { FindingType, TokenEntry } from "./types.js";
@@ -11,6 +11,12 @@ interface SerializedRegistry {
   latin_case_sensitive: boolean;
   entries: TokenEntry[];
 }
+
+declare const tokenMapProofBrand: unique symbol;
+export interface TokenMapProof { readonly [tokenMapProofBrand]: true }
+export interface EncryptedTokenMap { readonly payload: Buffer; readonly proof: TokenMapProof }
+
+const tokenMapProofStates = new WeakMap<object, { projectId: string; payloadHash: string; tokens: ReadonlySet<string> }>();
 
 export class ProjectTokenRegistry {
   readonly #projectId: string;
@@ -90,12 +96,31 @@ export class ProjectTokenRegistry {
   }
 }
 
-export function encryptTokenMap(registry: ProjectTokenRegistry, passphrase: string): Buffer {
-  return encryptEnvelope("ewmap", registry.serialize(), passphrase);
+export function encryptTokenMap(registry: ProjectTokenRegistry, passphrase: string): EncryptedTokenMap {
+  const serialized = registry.serialize();
+  const payload = encryptEnvelope("ewmap", serialized, passphrase);
+  const proof = Object.freeze({}) as TokenMapProof;
+  tokenMapProofStates.set(proof, {
+    projectId: serialized.project_id,
+    payloadHash: createHash("sha256").update(payload).digest("hex"),
+    tokens: new Set(serialized.entries.map((entry) => entry.token)),
+  });
+  return Object.freeze({ payload, proof });
 }
 
 export function decryptTokenMap(payload: Buffer, passphrase: string): ProjectTokenRegistry {
   return ProjectTokenRegistry.restore(decryptEnvelope(payload, "ewmap", passphrase) as SerializedRegistry);
+}
+
+export function tokenMapArtifactCovers(artifact: EncryptedTokenMap | undefined, projectId: string, entries: readonly TokenEntry[]): boolean {
+  if (!artifact || !Buffer.isBuffer(artifact.payload) || artifact.payload.length > MAX_ENCRYPTED_ARTIFACT_BYTES) return false;
+  const state = tokenMapProofStates.get(artifact.proof);
+  return state?.projectId === projectId && state.payloadHash === createHash("sha256").update(artifact.payload).digest("hex") &&
+    entries.every((entry) => state.tokens.has(entry.token));
+}
+
+export function isAuthenticTokenMapArtifactForProject(artifact: EncryptedTokenMap | undefined, projectId: string): boolean {
+  return artifact !== undefined && tokenMapArtifactCovers(artifact, projectId, []);
 }
 
 function validateSerializedRegistry(value: SerializedRegistry): void {

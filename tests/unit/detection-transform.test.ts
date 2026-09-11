@@ -84,7 +84,7 @@ test("encrypts dictionary and token registry with versioned authenticated header
   const first = registry.tokenFor(" Example   Foundry ", "exact-data", "CUSTOMER");
   const second = registry.tokenFor("example foundry", "exact-data", "CUSTOMER");
   assert.equal(first.token, second.token);
-  const encryptedMap = encryptTokenMap(registry, "correct horse battery staple");
+  const encryptedMap = encryptTokenMap(registry, "correct horse battery staple").payload;
   const header = JSON.parse(encryptedMap.toString("utf8"));
   assert.deepEqual(Object.keys(header).sort(), ["authentication_tag", "cipher", "ciphertext", "content_type", "format_version", "iv", "kdf", "salt", "scrypt"]);
   assert.deepEqual(header.scrypt, { N: 16384, r: 8, p: 1, key_length: 32, maxmem: 67108864 });

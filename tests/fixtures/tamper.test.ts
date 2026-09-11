@@ -9,7 +9,7 @@ import { inspectStoreZip, writeStoreZip } from "../../src/core/zip.js";
 test("tamper fixture matrix rejects authenticated-map ciphertext and KDF header changes", () => {
   const registry = ProjectTokenRegistry.create("00000000-0000-4000-8000-000000000001", { latinCaseSensitive: false });
   registry.tokenFor("Synthetic Customer", "exact-data", "CUSTOMER");
-  const encrypted = encryptTokenMap(registry, "correct horse battery staple");
+  const encrypted = encryptTokenMap(registry, "correct horse battery staple").payload;
   const ciphertextTamper = JSON.parse(encrypted.toString("utf8"));
   ciphertextTamper.ciphertext = `${ciphertextTamper.ciphertext.slice(0, -4)}AAAA`;
   assert.throws(() => decryptTokenMap(Buffer.from(JSON.stringify(ciphertextTamper)), "correct horse battery staple"));

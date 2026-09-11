@@ -1,7 +1,7 @@
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "node:crypto";
 
 export const SCRYPT_PARAMETERS = Object.freeze({ N: 16_384, r: 8, p: 1, keyLength: 32, maxmem: 64 * 1024 * 1024 });
-const MAX_ENCRYPTED_ARTIFACT_BYTES = 64 * 1024 * 1024;
+export const MAX_ENCRYPTED_ARTIFACT_BYTES = 64 * 1024 * 1024;
 const MAX_ENCRYPTED_PLAINTEXT_BYTES = 40 * 1024 * 1024;
 
 export interface EncryptedEnvelope {

@@ -27,6 +27,7 @@ Scope: phase 0 and phase 1 on `codex/plaintext-hardening-v0.1`. The review did n
 | Medium | Arbitrary package basenames could inject control characters into the sibling checksum line and receipt filename metadata. | Package basenames now require a length-bounded controlled ASCII pattern before any artifact is written. |
 | Medium | Manifest count maps accepted arbitrary property names and semantic validation did not reject duplicate source IDs. | The v0.1 schema now enumerates type/severity/action count keys with bounded counts and semantic validation enforces unique source IDs. |
 | High | Encrypted dictionaries were described as project-scoped but did not carry a project identifier, so identical dictionaries produced identical hashes and could be substituted across projects. | Dictionary format and snapshot now bind the project UUID into the hash; findings, registries, transformations and verification must all agree on that project. Tests prove equal terms hash differently across projects and mismatched registries fail closed. |
+| Critical | `tokenMapCreated` was a caller-provided boolean, so a tokenized session could claim that its rehydration map existed without performing encryption or covering the tokens used. | Token-map encryption now returns an opaque proof bound to project UUID, encrypted payload SHA-256 and the registry token snapshot. Verification rejects missing, forged, pre-tokenization/stale and mutated artifacts. |
 
 ## Residual risks and release gates
 

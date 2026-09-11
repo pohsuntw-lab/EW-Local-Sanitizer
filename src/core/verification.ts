@@ -4,6 +4,7 @@ import { isAuthenticDictionarySnapshot } from "./dictionary.js";
 import { assertSessionFileCount, assertSessionTotalBytes, isAuthenticSource, sourceHashStillMatches, type PlainTextSource } from "./intake.js";
 import { PLAIN_TEXT_POLICY_VERSION, assertSessionFindingCount, isBlockingSeverity, routeAllowed } from "./policy.js";
 import { isAuthenticTransformation } from "./transform.js";
+import { isAuthenticTokenMapArtifactForProject, tokenMapArtifactCovers, type EncryptedTokenMap } from "./token-vault.js";
 import type { AllowedRoute, Classification, PublicFinding, TransformResult, UnresolvedItem } from "./types.js";
 
 export interface VerificationItem {
@@ -16,7 +17,7 @@ export interface VerificationRequest {
   classification: Classification;
   allowedRoute: AllowedRoute;
   humanConfirmed: boolean;
-  tokenMapCreated: boolean;
+  tokenMapArtifact?: EncryptedTokenMap;
   items: readonly VerificationItem[];
   detection: DetectionContext;
 }
@@ -24,6 +25,7 @@ export interface VerificationRequest {
 interface VerifiedPayload extends VerificationRequest {
   verifiedAt: string;
   secondScanBlockingFindings: 0;
+  tokenMapCreated: boolean;
 }
 
 export interface VerifiedPackageData {
@@ -83,7 +85,10 @@ export function verifyForExport(request: VerificationRequest): VerificationOutco
   if (request.classification === "P3") unresolved.push({ code: "P3_LOCAL_ONLY" });
   else if (request.allowedRoute === "local-only" || !routeAllowed(request.classification, request.allowedRoute)) unresolved.push({ code: "ROUTE_NOT_ALLOWED" });
   if (request.classification === "P2" && !request.humanConfirmed) unresolved.push({ code: "HUMAN_CONFIRMATION_REQUIRED" });
-  if (!request.tokenMapCreated && request.items.some((item) => item.transformation.tokenEntries.length > 0)) {
+  const tokenEntries = request.items.flatMap((item) => item.transformation.tokenEntries);
+  const tokenMapCreated = isAuthenticTokenMapArtifactForProject(request.tokenMapArtifact, request.projectId);
+  if ((request.tokenMapArtifact !== undefined && !tokenMapCreated) ||
+    (tokenEntries.length > 0 && !tokenMapArtifactCovers(request.tokenMapArtifact, request.projectId, tokenEntries))) {
     unresolved.push({ code: "TOKEN_MAP_REQUIRED" });
   }
 
@@ -114,7 +119,7 @@ export function verifyForExport(request: VerificationRequest): VerificationOutco
   if (unresolved.length > 0) return { status: "blocked", unresolved: deduplicate(unresolved) };
   return {
     status: "verified",
-    capability: issueVerifiedExport({ ...request, verifiedAt: new Date().toISOString(), secondScanBlockingFindings: 0 }),
+    capability: issueVerifiedExport({ ...request, tokenMapCreated, verifiedAt: new Date().toISOString(), secondScanBlockingFindings: 0 }),
     residualRisk,
   };
 }
@@ -152,7 +157,7 @@ function validateVerificationRequest(request: VerificationRequest): void {
   if (!request || typeof request !== "object" || !isUuid(request.projectId) ||
     !new Set(["P0", "P1", "P2", "P3"]).has(request.classification) ||
     !new Set(["cloud-approved", "cloud-sanitized", "local-only"]).has(request.allowedRoute) ||
-    typeof request.humanConfirmed !== "boolean" || typeof request.tokenMapCreated !== "boolean" ||
+    typeof request.humanConfirmed !== "boolean" ||
     !Array.isArray(request.items) || !request.detection || typeof request.detection !== "object") {
     throw new Error("Invalid verification request");
   }

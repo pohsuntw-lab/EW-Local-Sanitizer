@@ -49,7 +49,7 @@ Version: 0.1.0 MVP
 - E2: Wrong passphrase or modified ciphertext fails authentication without partial output.
 - E3: Passphrases are never stored or logged.
 - E4: `.ewmap` is never placed inside the Safe Package.
-- E4a: A transformation containing project tokens cannot be verified for export unless token-map creation is recorded.
+- E4a: A transformation containing project tokens cannot be verified for export unless an opaque proof from actual token-map encryption matches the project, encrypted payload hash and every used token; missing, forged, stale or tampered artifacts fail closed.
 - E5: The versioned `.ewmap` header records KDF, explicit scrypt parameters, cipher, salt, IV and authentication tag.
 - E6: Equal normalized originals receive the same token in one project; independent project scope secrets prevent cross-project correlation, and verification rejects a transformation produced by a registry bound to another project UUID.
 - E7: Owned key/plaintext buffers are cleared on success and exception paths; documentation states JavaScript/caller memory limitations.

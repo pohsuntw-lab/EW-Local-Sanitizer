@@ -5,6 +5,7 @@ import { createDictionarySnapshot, type ProjectDictionary } from "../src/core/di
 import { detectText, type DetectionContext } from "../src/core/detectors.js";
 import { intakePlainText, type PlainTextSource } from "../src/core/intake.js";
 import { ProjectTokenRegistry } from "../src/core/token-vault.js";
+import type { EncryptedTokenMap } from "../src/core/token-vault.js";
 import { transformText } from "../src/core/transform.js";
 import type { Action, Decision, Finding, TransformResult } from "../src/core/types.js";
 
@@ -40,13 +41,13 @@ export function transformAll(
   return { findings, transformation: transformText(source.text, findings, decisions, { dictionary: detection.dictionary, tokenRegistry: registry }), registry };
 }
 
-export function verificationRequest(source: PlainTextSource, transformation: TransformResult, detection: DetectionContext) {
+export function verificationRequest(source: PlainTextSource, transformation: TransformResult, detection: DetectionContext, tokenMapArtifact?: EncryptedTokenMap) {
   return {
     projectId: transformation.projectId,
     classification: "P2" as const,
     allowedRoute: "cloud-sanitized" as const,
     humanConfirmed: true,
-    tokenMapCreated: transformation.tokenEntries.length > 0,
+    ...(tokenMapArtifact ? { tokenMapArtifact } : {}),
     items: [{ source, transformation }],
     detection,
   };

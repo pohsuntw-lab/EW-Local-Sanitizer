@@ -86,6 +86,7 @@ Suggests P0-P3 but requires a user decision. Hard rules:
 ### 6. Token vault
 
 - Serializes the rehydration map separately.
+- Returns the encrypted bytes with an opaque runtime proof bound to their SHA-256, project UUID and included token set; verification rejects missing, forged, stale, cross-project or modified artifacts.
 - Encrypts with AES-256-GCM.
 - Derives the key from a user passphrase with `scrypt` and a random salt.
 - Stores salt, nonce, authentication tag and ciphertext; never stores the passphrase.
@@ -103,7 +104,7 @@ JavaScript strings, values retained by callers and runtime-managed copies cannot
 - Writes the ZIP, checksum and receipt exclusively with cleanup of call-created partial files on write failure; existing targets are never overwritten.
 - Runs ZIP entry inspection after creation.
 - Packaging accepts only an opaque verified-export capability created by verification; arbitrary text cannot be passed directly to the packager.
-- Runtime validation rejects unknown classifications/routes, non-boolean confirmation state, duplicate source IDs and tokenized sessions without a recorded local token map.
+- Runtime validation rejects unknown classifications/routes, non-boolean confirmation state, duplicate source IDs and tokenized sessions without an authentic encrypted token-map artifact covering all used tokens.
 - Package basenames use a controlled ASCII format before they enter checksum or receipt metadata.
 - Reopens the ZIP and checks the allowlist, duplicates, traversal/hidden names, canonical metadata headers, entry sizes and a 128 MiB aggregate package bound. The SHA-256 of the actual completed ZIP bytes is written to a sibling `.sha256` file and local receipt, never into the ZIP itself.
 
