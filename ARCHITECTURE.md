@@ -104,7 +104,8 @@ JavaScript strings, values retained by callers and runtime-managed copies cannot
 - Writes the ZIP, checksum and receipt exclusively with cleanup of call-created partial files on write failure; existing targets are never overwritten.
 - Runs ZIP entry inspection after creation.
 - Packaging accepts only an opaque verified-export capability created by verification; arbitrary text cannot be passed directly to the packager.
-- Runtime validation rejects unknown classifications/routes, non-boolean confirmation state, duplicate source IDs and tokenized sessions without an authentic encrypted token-map artifact covering all used tokens.
+- Runtime validation rejects unknown classifications/routes, invalid confirmation values, duplicate source IDs and tokenized sessions without an authentic encrypted token-map artifact covering all used tokens.
+- P2 confirmation is an opaque runtime capability bound to safe hashes of the exact reviewed project, dictionary, sources, derivatives, public findings and unresolved state; stale, forged or cross-session confirmation fails closed.
 - Package basenames use a controlled ASCII format before they enter checksum or receipt metadata.
 - Reopens the ZIP and checks the allowlist, duplicates, traversal/hidden names, canonical metadata headers, entry sizes and a 128 MiB aggregate package bound. The SHA-256 of the actual completed ZIP bytes is written to a sibling `.sha256` file and local receipt, never into the ZIP itself.
 
@@ -128,6 +129,8 @@ Because an archive cannot contain its own final hash, the manifest records the p
 ## Plain-text core boundaries
 
 Parsing, detection, policy, transformation, verification and packaging are separate modules. Session data is in memory by default and discarded when the session closes. Saving a project/session requires an encrypted local format. Logs and export receipts contain only source IDs, safe filenames, hashes, counts, status and controlled error/event codes; they never contain raw findings or full source paths.
+
+The core can prove that a P2 confirmation was issued for an exact review-state hash, but without the later UI/IPC layer it cannot prove that the issuing call originated from a physical user gesture. The future narrow IPC handler must invoke confirmation only from the explicit review action.
 
 ## Logging
 

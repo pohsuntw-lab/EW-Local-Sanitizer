@@ -66,8 +66,9 @@ Version: 0.1.0 MVP
 - F8: ZIP post-write inspection rejects non-allowlisted, duplicate, traversal, hidden, noncanonical-header and oversized entries/packages; deterministic mutation fixtures fail closed for every single-byte change and truncation of a baseline archive.
 - F9: The package checksum is SHA-256 of the actual ZIP bytes and is stored in a sibling `.sha256` file and local receipt, not inside the ZIP.
 - F10: Token labels, controlled generalizations and public report fields are validated and scanned before export.
-- F11: Verification rejects invalid runtime classification/route/boolean fields and duplicate source IDs; package basenames reject control characters and checksum-line injection.
+- F11: Verification rejects invalid runtime classification, route and confirmation fields plus duplicate source IDs; package basenames reject control characters and checksum-line injection.
 - F12: Manifest finding-count maps accept only known finding types, severities and actions, and manifest source IDs are unique.
+- F13: P2 does not accept a caller-provided boolean; its confirmation capability is bound to the exact project, dictionary, source and derivative/report review state, and missing, forged or stale confirmation blocks export.
 
 For v0.1, F6 means local validation against `schemas/ew-safe-package-manifest-v0.1.schema.json`. Validation by EW Enterprise Secure Knowledge Forge is pending integration and must not be claimed complete.
 

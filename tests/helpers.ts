@@ -8,6 +8,7 @@ import { ProjectTokenRegistry } from "../src/core/token-vault.js";
 import type { EncryptedTokenMap } from "../src/core/token-vault.js";
 import { transformText } from "../src/core/transform.js";
 import type { Action, Decision, Finding, TransformResult } from "../src/core/types.js";
+import { recordP2HumanConfirmation, type VerificationRequest } from "../src/core/verification.js";
 
 export function dictionary(terms: string[] = [], latinCaseSensitive = false, version = "dict-1", projectId = randomUUID()): DetectionContext {
   const projectDictionary: ProjectDictionary = {
@@ -41,14 +42,20 @@ export function transformAll(
   return { findings, transformation: transformText(source.text, findings, decisions, { dictionary: detection.dictionary, tokenRegistry: registry }), registry };
 }
 
-export function verificationRequest(source: PlainTextSource, transformation: TransformResult, detection: DetectionContext, tokenMapArtifact?: EncryptedTokenMap) {
-  return {
+export function verificationRequest(
+  source: PlainTextSource,
+  transformation: TransformResult,
+  detection: DetectionContext,
+  tokenMapArtifact?: EncryptedTokenMap,
+  confirmed = true,
+): VerificationRequest {
+  const request: VerificationRequest = {
     projectId: transformation.projectId,
     classification: "P2" as const,
     allowedRoute: "cloud-sanitized" as const,
-    humanConfirmed: true,
     ...(tokenMapArtifact ? { tokenMapArtifact } : {}),
     items: [{ source, transformation }],
     detection,
   };
+  return confirmed ? { ...request, humanConfirmation: recordP2HumanConfirmation(request) } : request;
 }

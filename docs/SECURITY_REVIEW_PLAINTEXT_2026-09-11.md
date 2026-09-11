@@ -28,6 +28,7 @@ Scope: phase 0 and phase 1 on `codex/plaintext-hardening-v0.1`. The review did n
 | Medium | Manifest count maps accepted arbitrary property names and semantic validation did not reject duplicate source IDs. | The v0.1 schema now enumerates type/severity/action count keys with bounded counts and semantic validation enforces unique source IDs. |
 | High | Encrypted dictionaries were described as project-scoped but did not carry a project identifier, so identical dictionaries produced identical hashes and could be substituted across projects. | Dictionary format and snapshot now bind the project UUID into the hash; findings, registries, transformations and verification must all agree on that project. Tests prove equal terms hash differently across projects and mismatched registries fail closed. |
 | Critical | `tokenMapCreated` was a caller-provided boolean, so a tokenized session could claim that its rehydration map existed without performing encryption or covering the tokens used. | Token-map encryption now returns an opaque proof bound to project UUID, encrypted payload SHA-256 and the registry token snapshot. Verification rejects missing, forged, pre-tokenization/stale and mutated artifacts. |
+| High | P2 confirmation was a caller-provided boolean and was not bound to the content actually reviewed. | Confirmation is now an opaque runtime capability bound to safe hashes of the project, dictionary, source, derivative, public report and unresolved state. Missing, forged, stale and cross-project confirmation fails closed. |
 
 ## Residual risks and release gates
 
@@ -38,3 +39,4 @@ Scope: phase 0 and phase 1 on `codex/plaintext-hardening-v0.1`. The review did n
 - Dictionary SHA-256 values no longer reveal equality across project UUIDs, but may still permit offline guessing of very low-entropy dictionaries when the project ID is known; manifests contain no dictionary text, and a future secret project-keyed commitment should be considered.
 - Network-denied evidence currently covers static source policy and denied JavaScript network entry points. OS-level denial on supported Windows systems remains pending.
 - Windows filesystem behavior, installer/runtime behavior, Authenticode and cross-project Forge validation remain pending acceptance gates.
+- Until the UI and narrow IPC layer exist, the core cannot independently attest that confirmation issuance was triggered by a physical user gesture; it only attests the exact review state that was confirmed.

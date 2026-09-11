@@ -71,7 +71,7 @@ Classification and routes are fixed for the MVP:
 
 - P0 Public: exportable only after complete verification and a passing second scan.
 - P1 Internal: exportable after all sensitive findings are handled and verification passes.
-- P2 Confidential: requires a sanitized derivative, explicit human confirmation, complete coverage and no unresolved high/critical finding.
+- P2 Confidential: requires a sanitized derivative, explicit human confirmation bound to the reviewed project, sources, dictionary and derivative/report hashes, complete coverage and no unresolved high/critical finding.
 - P3 Restricted: always local-only. Renaming, tokenization or generalization never changes this route.
 
 An unresolved state includes a missing decision, a kept high/critical finding, a credential or private key not deleted, incomplete/unknown parser coverage, a failed transformation or second scan, a remaining high/critical second-scan finding, a P3 route violation, a changed source hash, or failed ZIP allowlist/entry verification.

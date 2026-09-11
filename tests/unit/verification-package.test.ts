@@ -34,9 +34,12 @@ test("blocks export bypass, unresolved findings, high keep, P3 and missing P2 co
   const deleted = transformText(source.text, findings, findings.map((finding) => ({ findingId: finding.findingId, action: "delete" as const })), { dictionary: detection.dictionary, tokenRegistry: registry });
   const validRequest = { ...verificationRequest(source, deleted, detection), projectId };
   assert.throws(() => verifyForExport({ ...validRequest, classification: "P4" as never }), /Invalid verification request/);
+  assert.throws(() => verifyForExport({ ...validRequest, humanConfirmation: true as never }), /Invalid verification request/);
   assert.throws(() => verifyForExport({ ...validRequest, items: [validRequest.items[0]!, validRequest.items[0]!] }), /Duplicate verification source/);
   assert.equal(verifyForExport({ ...verificationRequest(source, deleted, detection), projectId, classification: "P3", allowedRoute: "local-only" }).status, "blocked");
-  assert.equal(verifyForExport({ ...verificationRequest(source, deleted, detection), projectId, humanConfirmed: false }).status, "blocked");
+  const { humanConfirmation: _confirmation, ...unconfirmed } = verificationRequest(source, deleted, detection);
+  assert.equal(verifyForExport(unconfirmed).status, "blocked");
+  assert.equal(verifyForExport({ ...unconfirmed, humanConfirmation: Object.freeze({}) as never }).status, "blocked");
   assert.throws(() => createSafePackage({ verifiedPayloadForPackaging: () => ({}) } as unknown as VerifiedExport, join(directory, "bypass-SAFE-PACKAGE.zip")), /Unverified export capability/);
 });
 
@@ -46,7 +49,7 @@ test("binds authentic transformations to their source text and rejects forged di
   const first = writeSource(directory, "First neutral source.", "first.txt");
   const second = writeSource(directory, "Second neutral source.", "second.txt");
   const { transformation } = transformAll(first, detection);
-  const mismatch = verifyForExport(verificationRequest(second, transformation, detection));
+  const mismatch = verifyForExport(verificationRequest(second, transformation, detection, undefined, false));
   assert.equal(mismatch.status, "blocked");
   if (mismatch.status === "blocked") assert.ok(mismatch.unresolved.some((item) => item.code === "TRANSFORMATION_FAILED"));
   const crossProject = verifyForExport({ ...verificationRequest(first, transformation, detection), projectId: randomUUID() });
@@ -75,9 +78,9 @@ test("binds the same dictionary to second scan and blocks report-field injection
       action: "keep" as const, reason_code: "test.person@example.com" as ReasonCode,
     }],
   };
-  assert.equal(verifyForExport(verificationRequest(source, reportInjected, detection)).status, "blocked");
+  assert.equal(verifyForExport(verificationRequest(source, reportInjected, detection, undefined, false)).status, "blocked");
   const mismatched = { ...transformation, dictionaryHash: "0".repeat(64) };
-  assert.equal(verifyForExport(verificationRequest(source, mismatched, detection)).status, "blocked");
+  assert.equal(verifyForExport(verificationRequest(source, mismatched, detection, undefined, false)).status, "blocked");
 });
 
 test("blocks changed source hash and allows medium keep only with residual risk", () => {
@@ -98,7 +101,7 @@ test("blocks changed source hash and allows medium keep only with residual risk"
     assert.equal(readFileSync(output).includes(Buffer.from("Synthetic local review detail")), false);
   }
   writeFileSync(path, "changed");
-  assert.equal(verifyForExport(verificationRequest(source, kept, detection)).status, "blocked");
+  assert.equal(verifyForExport(verificationRequest(source, kept, detection, undefined, false)).status, "blocked");
 });
 
 test("writes allowlisted package, validates actual ZIP SHA-256 and excludes local artifacts", () => {
