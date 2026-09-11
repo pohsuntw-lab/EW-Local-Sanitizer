@@ -25,7 +25,7 @@ function walk(path) {
   for (const name of readdirSync(path)) {
     const full = join(path, name);
     if (statSync(full).isDirectory()) walk(full);
-    else if (full === "scripts/check-source.mjs") continue;
+    else if (full.replaceAll("\\", "/") === "scripts/check-source.mjs") continue;
     else if (/\.(?:[cm]?js|ts)$/.test(name)) {
       const text = readFileSync(full, "utf8");
       for (const pattern of forbidden) if (pattern.test(text)) violations.push(`${full}: forbidden pattern ${pattern}`);
