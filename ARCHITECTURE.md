@@ -159,6 +159,7 @@ Local logs must not contain original sensitive values or full source paths. Logs
 
 - Test phase: Electron Builder creates NSIS per-user installer and portable x64 artifacts whose filenames and local build receipt say `UNSIGNED-TEST-ONLY`; publishing and signing discovery are disabled.
 - Build verification requires PE signatures, exact artifact allowlisting, SHA-256 sibling files, a safe local build receipt and proof that development-only builder/publisher packages are absent from the packaged app.
+- A least-privilege Windows CI smoke job may rebuild synthetic/test-only inputs and exercise portable launch, per-user install, installed launch and uninstall. It never uploads artifacts and does not replace named-tester physical UAT.
 - Public website: Authenticode-signed Windows installer and portable package.
 - Publish SHA-256 checksums and versioned release notes.
 - The website must not describe an unsigned artifact as production-ready.

@@ -6,6 +6,7 @@ import type { ExportOptions, ExportResult, ScanOptions, ScanResponse } from "../
 
 const currentDirectory = dirname(fileURLToPath(import.meta.url));
 const service = new LocalSessionService();
+const packagedSmokeTest = process.argv.includes("--ew-packaged-smoke-test");
 app.setName("EW Local Sanitizer");
 
 app.whenReady().then(() => {
@@ -26,9 +27,11 @@ function createWindow(): void {
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   window.webContents.on("will-navigate", (event) => event.preventDefault());
   window.webContents.on("render-process-gone", () => service.close());
+  window.webContents.once("did-fail-load", () => { if (packagedSmokeTest) app.exit(2); });
+  window.webContents.once("did-finish-load", () => { if (packagedSmokeTest) { service.close(); app.exit(0); } });
   window.on("closed", () => service.close());
   void window.loadFile(join(currentDirectory, "../renderer/index.html"));
-  window.once("ready-to-show", () => window.show());
+  window.once("ready-to-show", () => { if (!packagedSmokeTest) window.show(); });
 }
 
 function hardenSession(): void {

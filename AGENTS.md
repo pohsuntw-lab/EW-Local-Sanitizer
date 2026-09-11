@@ -37,6 +37,7 @@ Build EW Local Sanitizer v0.1.0 as a Windows-first, local-only pre-upload docume
 - JavaScript memory cannot promise complete zeroization; clear owned buffers in `finally` paths and document the limitation.
 - Electron renderer must be sandboxed, context-isolated and Node-disabled with a no-connect CSP. Native dialogs and all core/capability state remain in main; preload exposes only the typed minimum workflow.
 - Raw findings, source full paths, token registries, dictionary snapshots and verified-export capabilities must never cross into renderer state. P2 confirmation is issued only inside the explicit reviewed-export IPC handler.
+- CI actions must use full commit SHAs and least-privilege permissions. Windows smoke CI must not upload artifacts, persist Git credentials, sign, publish or use non-synthetic documents.
 
 ## Required commands
 

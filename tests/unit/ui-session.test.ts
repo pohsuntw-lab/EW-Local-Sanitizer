@@ -77,6 +77,8 @@ test("Electron boundary uses sandboxed isolated renderer, deny-all permissions a
   assert.match(main, /setPermissionRequestHandler/);
   assert.match(main, /action:\s*"deny"/);
   assert.match(main, /render-process-gone/);
+  assert.match(main, /--ew-packaged-smoke-test/);
+  assert.match(main, /did-finish-load/);
   assert.match(preload, /contextBridge\.exposeInMainWorld/);
   assert.doesNotMatch(preload, /sendSync|on\s*\(/);
   assert.match(html, /connect-src 'none'/);

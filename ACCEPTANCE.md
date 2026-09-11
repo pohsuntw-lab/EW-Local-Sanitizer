@@ -109,6 +109,7 @@ For v0.1, F6 means local validation against `schemas/ew-safe-package-manifest-v0
 - G6: Packaging refuses signing environment inputs, disables automatic signing discovery and never invokes publishing. Unsigned outputs are not a public release.
 - G7: Artifact verification rejects missing, duplicate, unexpected, non-regular, symbolic-link, oversized or non-PE outputs and removes partial checksum/receipt evidence.
 - G8: Packaged ASAR/runtime inspection confirms the manifest schema and local OCR model/WASM resources are present while Electron Builder, publisher/update tooling, source maps and declaration files are absent.
+- G9: A least-privilege Windows CI job installs locked dependencies without lifecycle scripts, reruns lint/typecheck/synthetic tests, builds without publishing, and smoke-tests portable launch, per-user silent install, installed-app launch and uninstall. CI artifacts are not uploaded or released.
 
 ## H. User acceptance journey
 

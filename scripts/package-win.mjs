@@ -1,5 +1,5 @@
 import { lstatSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { listPackage } from "@electron/asar";
 import { Arch, build, Platform } from "electron-builder";
 import manifest from "../package.json" with { type: "json" };
@@ -33,7 +33,7 @@ try {
     const linked = lstatSync(join(resources, path));
     if (!linked.isFile() || linked.isSymbolicLink() || linked.size === 0) throw new Error(`Invalid unpacked OCR resource: ${path}`);
   }
-  const executables = artifacts.filter((path) => path.endsWith(".exe") && resolve(path).startsWith(`${outputDirectory}/`));
+  const executables = artifacts.filter((path) => path.endsWith(".exe") && dirname(resolve(path)) === outputDirectory);
   rmSync(join(outputDirectory, "win-unpacked"), { recursive: true, force: true });
   for (const filename of ["builder-debug.yml", "builder-effective-config.yaml", "latest.yml"]) rmSync(join(outputDirectory, filename), { force: true });
   const sourceCommit = readSourceCommit(repositoryRoot);

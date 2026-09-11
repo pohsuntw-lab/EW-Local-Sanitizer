@@ -6,6 +6,8 @@ Status: Pending real-machine execution
 
 Scope: Windows 10/11 x64, named testers only
 
+Automated Windows CI separately smoke-tests portable launch, silent per-user install, installed-app launch and uninstall. It does not replace the physical-click, native-dialog, SmartScreen or end-to-end review tests below.
+
 ## Safety notice
 
 The installer and portable executable are intentionally unsigned test artifacts. Windows SmartScreen may warn about an unknown publisher. Do not distribute them publicly, suppress the warning in product copy, or treat this checklist as Authenticode acceptance. Use synthetic documents only.
