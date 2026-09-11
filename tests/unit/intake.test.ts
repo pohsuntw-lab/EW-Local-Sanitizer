@@ -4,8 +4,8 @@ import { chmodSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "n
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { assertSessionFileCount, intakePlainText, sourceHashStillMatches } from "../../src/core/intake.js";
-import { MAX_PLAIN_TEXT_BYTES } from "../../src/core/policy.js";
+import { assertSessionFileCount, assertSessionTotalBytes, intakePlainText, sourceHashStillMatches } from "../../src/core/intake.js";
+import { MAX_PLAIN_TEXT_BYTES, MAX_SESSION_TOTAL_BYTES } from "../../src/core/policy.js";
 
 test("opens source read-only and preserves mode and SHA-256", () => {
   const directory = mkdtempSync(join(tmpdir(), "ew-intake-"));
@@ -56,4 +56,6 @@ test("supports explicit UTF encodings and enforces session/extension policy", ()
   assert.throws(() => intakePlainText(unsupported), /Unsupported/);
   assert.doesNotThrow(() => assertSessionFileCount(100));
   assert.throws(() => assertSessionFileCount(101), /100/);
+  assert.doesNotThrow(() => assertSessionTotalBytes([MAX_SESSION_TOTAL_BYTES]));
+  assert.throws(() => assertSessionTotalBytes([MAX_SESSION_TOTAL_BYTES, 1]), /aggregate/);
 });

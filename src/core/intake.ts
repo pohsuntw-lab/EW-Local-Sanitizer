@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { closeSync, constants, fstatSync, lstatSync, openSync, readFileSync } from "node:fs";
 import { extname } from "node:path";
-import { MAX_PLAIN_TEXT_BYTES, MAX_SESSION_FILES, PLAIN_TEXT_POLICY_VERSION } from "./policy.js";
+import { MAX_PLAIN_TEXT_BYTES, MAX_SESSION_FILES, MAX_SESSION_TOTAL_BYTES, PLAIN_TEXT_POLICY_VERSION } from "./policy.js";
 import type { CoverageStatus } from "./types.js";
 
 export interface PlainTextSource {
@@ -57,6 +57,15 @@ export function assertSessionFileCount(count: number): void {
   if (!Number.isInteger(count) || count < 1 || count > MAX_SESSION_FILES) throw new Error("Session must contain between 1 and 100 files");
 }
 
+export function assertSessionTotalBytes(sizes: readonly number[]): void {
+  let total = 0;
+  for (const size of sizes) {
+    if (!Number.isSafeInteger(size) || size < 0) throw new Error("Invalid source size");
+    total += size;
+    if (total > MAX_SESSION_TOTAL_BYTES) throw new Error("Session exceeds 100 MiB aggregate policy limit");
+  }
+}
+
 export function sourceHashStillMatches(source: PlainTextSource): boolean {
   if (!authenticSources.has(source)) return false;
   const path = sourcePaths.get(source);
@@ -64,7 +73,10 @@ export function sourceHashStillMatches(source: PlainTextSource): boolean {
   let descriptor: number | undefined;
   try {
     descriptor = openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
-    return sha256(readFileSync(descriptor)) === source.originalHash;
+    const opened = fstatSync(descriptor);
+    if (!opened.isFile() || opened.size !== source.size || opened.size > MAX_PLAIN_TEXT_BYTES) return false;
+    const bytes = readFileSync(descriptor);
+    return bytes.length === source.size && sha256(bytes) === source.originalHash;
   } catch {
     return false;
   } finally {

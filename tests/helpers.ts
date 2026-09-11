@@ -28,9 +28,10 @@ export function transformAll(
   source: PlainTextSource,
   detection: DetectionContext,
   action: Action = "delete",
+  projectId = randomUUID(),
 ): { findings: Finding[]; transformation: TransformResult; registry: ProjectTokenRegistry } {
   const findings = detectText(source.text, detection);
-  const registry = ProjectTokenRegistry.create(detection.dictionary);
+  const registry = ProjectTokenRegistry.create(projectId, detection.dictionary);
   const decisions: Decision[] = findings.map((finding) => ({
     findingId: finding.findingId,
     action,
@@ -41,7 +42,7 @@ export function transformAll(
 
 export function verificationRequest(source: PlainTextSource, transformation: TransformResult, detection: DetectionContext) {
   return {
-    projectId: randomUUID(),
+    projectId: transformation.projectId,
     classification: "P2" as const,
     allowedRoute: "cloud-sanitized" as const,
     humanConfirmed: true,

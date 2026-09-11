@@ -14,7 +14,7 @@ Version: 0.1.0 MVP
 - B1: Original source SHA-256 is identical before and after processing.
 - B2: Supported formats are opened read-only and never overwritten.
 - B3: Parser failure, encrypted input, unsupported feature or incomplete OCR coverage is visible and blocks a safe status.
-- B3a: Plain-text intake supports TXT/Markdown only, rejects files over 10 MiB, rejects sessions over 100 files, and does not rely on extension alone.
+- B3a: Plain-text intake supports TXT/Markdown only, rejects files over 10 MiB, sessions over 100 files or 100 MiB aggregate source bytes, and does not rely on extension alone.
 - B3b: Unsupported encodings, binary content masquerading as text and uncertain decoding fail closed.
 - B4: DOCX test detects text in body, table, header/footer and comment fixtures.
 - B5: XLSX test identifies hidden sheets, hidden rows/columns, formulas, comments and external-link indicators in fixtures.
@@ -49,7 +49,7 @@ Version: 0.1.0 MVP
 - E3: Passphrases are never stored or logged.
 - E4: `.ewmap` is never placed inside the Safe Package.
 - E5: The versioned `.ewmap` header records KDF, explicit scrypt parameters, cipher, salt, IV and authentication tag.
-- E6: Equal normalized originals receive the same token in one project; independent project scope secrets prevent cross-project correlation.
+- E6: Equal normalized originals receive the same token in one project; independent project scope secrets prevent cross-project correlation, and verification rejects a transformation produced by a registry bound to another project UUID.
 - E7: Owned key/plaintext buffers are cleared on success and exception paths; documentation states JavaScript/caller memory limitations.
 
 ## F. Safe Package
@@ -61,7 +61,7 @@ Version: 0.1.0 MVP
 - F5: Package and derivative hashes verify successfully.
 - F6: This repository validates manifests locally against the versioned v0.1 schema; EW Enterprise Secure Knowledge Forge cross-project validation remains pending integration.
 - F7: Packaging accepts only a verified result; callers cannot bypass unresolved, coverage, source-integrity, policy or second-scan checks by supplying arbitrary derivative text.
-- F8: ZIP post-write inspection rejects non-allowlisted, duplicate, traversal, hidden and oversized entries.
+- F8: ZIP post-write inspection rejects non-allowlisted, duplicate, traversal, hidden, noncanonical-header and oversized entries/packages; deterministic mutation fixtures fail closed for every single-byte change and truncation of a baseline archive.
 - F9: The package checksum is SHA-256 of the actual ZIP bytes and is stored in a sibling `.sha256` file and local receipt, not inside the ZIP.
 - F10: Token labels, controlled generalizations and public report fields are validated and scanned before export.
 

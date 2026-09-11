@@ -76,6 +76,7 @@ export interface UnresolvedItem {
 }
 
 export interface TransformResult {
+  projectId: string;
   sanitizedText: string;
   sourceTextHash: string;
   publicFindings: readonly PublicFinding[];

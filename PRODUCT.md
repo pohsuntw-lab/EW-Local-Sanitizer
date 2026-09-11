@@ -99,7 +99,7 @@ The encrypted project token registry gives the same normalized original the same
 ## Plain-text v0.1 limits
 
 - TXT and Markdown only.
-- Maximum 10 MiB per file and 100 files per session.
+- Maximum 10 MiB per file, 100 files per session and 100 MiB total source bytes per session.
 - Only explicitly supported Unicode encodings are accepted; unreliable decoding fails closed.
 - Extension is never the sole format signal. Binary content, unsupported formats and uncertain coverage block export.
 - Dictionary matching uses Unicode NFKC, trimmed/collapsed whitespace and a configurable Latin case rule. Aliases are explicit and fuzzy matching is disabled.
@@ -131,4 +131,4 @@ The encrypted project token registry gives the same normalized original the same
 - Unresolved high/critical findings block export.
 - Safe Package contains no originals, raw values or token map.
 - Re-scan passes before export.
-- A Safe Package can be accepted by EW Enterprise Secure Knowledge Forge.
+- The repository schema validates the Safe Package manifest locally; EW Enterprise Secure Knowledge Forge cross-project acceptance remains pending integration.

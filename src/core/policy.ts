@@ -3,7 +3,10 @@ import type { AllowedRoute, Classification, FindingType, ReasonCode, Severity } 
 export const PLAIN_TEXT_POLICY_VERSION = "ew-plaintext-policy-0.1";
 export const MAX_PLAIN_TEXT_BYTES = 10 * 1024 * 1024;
 export const MAX_SESSION_FILES = 100;
+export const MAX_SESSION_TOTAL_BYTES = 100 * 1024 * 1024;
 export const MAX_ZIP_ENTRY_BYTES = 16 * 1024 * 1024;
+export const MAX_SAFE_PACKAGE_BYTES = 128 * 1024 * 1024;
+export const MAX_SAFE_PACKAGE_ENTRIES = MAX_SESSION_FILES + 3;
 
 export const CONTROLLED_REASON_CODES = new Set<ReasonCode>([
   "PUBLICLY_APPROVED",

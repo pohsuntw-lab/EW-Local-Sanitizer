@@ -1,10 +1,11 @@
 import { writeFileSync } from "node:fs";
-import { MAX_ZIP_ENTRY_BYTES } from "./policy.js";
+import { MAX_SAFE_PACKAGE_BYTES, MAX_SAFE_PACKAGE_ENTRIES, MAX_ZIP_ENTRY_BYTES } from "./policy.js";
 
 export interface ZipEntry { name: string; data: Buffer }
 export interface InspectedZipEntry { name: string; size: number; data: Buffer }
 
 export function writeStoreZip(path: string, entries: readonly ZipEntry[]): void {
+  if (entries.length < 1 || entries.length > MAX_SAFE_PACKAGE_ENTRIES) throw new Error("Invalid ZIP entry count");
   const names = new Set<string>();
   const localParts: Buffer[] = [];
   const centralParts: Buffer[] = [];
@@ -29,15 +30,17 @@ export function writeStoreZip(path: string, entries: readonly ZipEntry[]): void 
     centralParts.push(central, name);
     offset += local.length + name.length + entry.data.length;
   }
-  if (entries.length > 65_535) throw new Error("Too many ZIP entries");
   const centralData = Buffer.concat(centralParts);
   const end = Buffer.alloc(22);
   end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(entries.length, 8); end.writeUInt16LE(entries.length, 10);
   end.writeUInt32LE(centralData.length, 12); end.writeUInt32LE(offset, 16);
-  writeFileSync(path, Buffer.concat([...localParts, centralData, end]), { flag: "wx", mode: 0o600 });
+  if (offset + centralData.length + end.length > MAX_SAFE_PACKAGE_BYTES) throw new Error("ZIP exceeds aggregate size policy");
+  const archive = Buffer.concat([...localParts, centralData, end]);
+  writeFileSync(path, archive, { flag: "wx", mode: 0o600 });
 }
 
 export function inspectStoreZip(buffer: Buffer, allowlist: ReadonlySet<string>): InspectedZipEntry[] {
+  if (buffer.length > MAX_SAFE_PACKAGE_BYTES) throw new Error("ZIP exceeds aggregate size policy");
   const endOffset = findEndRecord(buffer);
   const diskNumber = readUInt16(buffer, endOffset + 4);
   const centralDisk = readUInt16(buffer, endOffset + 6);
@@ -46,6 +49,7 @@ export function inspectStoreZip(buffer: Buffer, allowlist: ReadonlySet<string>):
   const centralSize = readUInt32(buffer, endOffset + 12);
   const centralOffset = readUInt32(buffer, endOffset + 16);
   const commentLength = readUInt16(buffer, endOffset + 20);
+  if (count < 1 || count > MAX_SAFE_PACKAGE_ENTRIES) throw new Error("Invalid ZIP entry count");
   if (diskNumber !== 0 || centralDisk !== 0 || diskCount !== count) throw new Error("Multi-disk ZIP is unsupported");
   if (commentLength !== 0 || endOffset + 22 !== buffer.length) throw new Error("ZIP contains a comment, trailing or malformed data");
   if (centralOffset + centralSize !== endOffset) throw new Error("Invalid ZIP central directory bounds");
@@ -55,14 +59,18 @@ export function inspectStoreZip(buffer: Buffer, allowlist: ReadonlySet<string>):
   while (offset < centralOffset) {
     const localOffset = offset;
     requireSignature(buffer, offset, 0x04034b50, "local header");
+    const versionNeeded = readUInt16(buffer, offset + 4);
     const flags = readUInt16(buffer, offset + 6);
     const method = readUInt16(buffer, offset + 8);
+    const timestamp = readUInt32(buffer, offset + 10);
     const compressedSize = readUInt32(buffer, offset + 18);
     const size = readUInt32(buffer, offset + 22);
     const expectedCrc = readUInt32(buffer, offset + 14);
     const nameLength = readUInt16(buffer, offset + 26);
     const extraLength = readUInt16(buffer, offset + 28);
-    if (flags !== 0x0800 || method !== 0 || compressedSize !== size || extraLength !== 0) throw new Error("Unsupported ZIP encoding, compression or hidden extra data");
+    if (versionNeeded !== 20 || flags !== 0x0800 || method !== 0 || timestamp !== 0 || compressedSize !== size || extraLength !== 0) {
+      throw new Error("Unsupported or noncanonical ZIP local header");
+    }
     const nameStart = offset + 30;
     const dataStart = nameStart + nameLength + extraLength;
     const dataEnd = dataStart + size;
@@ -80,8 +88,11 @@ export function inspectStoreZip(buffer: Buffer, allowlist: ReadonlySet<string>):
   let centralCursor = centralOffset;
   for (let index = 0; index < count; index += 1) {
     requireSignature(buffer, centralCursor, 0x02014b50, "central header");
+    const versionMadeBy = readUInt16(buffer, centralCursor + 4);
+    const versionNeeded = readUInt16(buffer, centralCursor + 6);
     const flags = readUInt16(buffer, centralCursor + 8);
     const method = readUInt16(buffer, centralCursor + 10);
+    const timestamp = readUInt32(buffer, centralCursor + 12);
     const expectedCrc = readUInt32(buffer, centralCursor + 16);
     const compressedSize = readUInt32(buffer, centralCursor + 20);
     const size = readUInt32(buffer, centralCursor + 24);
@@ -89,13 +100,16 @@ export function inspectStoreZip(buffer: Buffer, allowlist: ReadonlySet<string>):
     const extraLength = readUInt16(buffer, centralCursor + 30);
     const commentLength = readUInt16(buffer, centralCursor + 32);
     const diskStart = readUInt16(buffer, centralCursor + 34);
+    const internalAttributes = readUInt16(buffer, centralCursor + 36);
+    const externalAttributes = readUInt32(buffer, centralCursor + 38);
     const localOffset = readUInt32(buffer, centralCursor + 42);
     const nameStart = centralCursor + 46;
     const next = nameStart + nameLength + extraLength + commentLength;
     if (next > endOffset) throw new Error("ZIP central entry exceeds bounds");
     const name = decodeZipName(buffer.subarray(nameStart, nameStart + nameLength));
-    if (flags !== 0x0800 || method !== 0 || compressedSize !== size || extraLength !== 0 || commentLength !== 0 || diskStart !== 0) {
-      throw new Error("Unsupported central ZIP encoding, compression or hidden data");
+    if (versionMadeBy !== 20 || versionNeeded !== 20 || flags !== 0x0800 || method !== 0 || timestamp !== 0 || compressedSize !== size ||
+      extraLength !== 0 || commentLength !== 0 || diskStart !== 0 || internalAttributes !== 0 || externalAttributes !== 0) {
+      throw new Error("Unsupported or noncanonical ZIP central header");
     }
     validateAllowedEntry(name, size, allowlist, centralNames);
     const local = localEntries[index];

@@ -16,13 +16,16 @@ Scope: phase 0 and phase 1 on `codex/plaintext-hardening-v0.1`. The review did n
 | Medium | Encrypted envelope headers were validated but not included as AES-GCM additional authenticated data. | The complete version/KDF/cipher/salt/IV header is now AEAD-authenticated; encrypted artifact size limits were added. |
 | Medium | JSON Schema validated fields independently but did not verify route, second-scan binding or allowlist/source relationships. | Added local semantic validation after strict schema validation. |
 | Medium | Only individual report fields were rescanned. | Verification scans serialized public findings, and packaging rescans the complete manifest, DLP report and README before writing the archive. |
+| High | A project token registry could be deliberately reused with a different verification project ID. | The encrypted registry now records a project UUID, transformations inherit that binding and verification rejects cross-project reuse. Restored entries are also checked against their HMAC-derived token. |
+| Medium | Unused ZIP timestamp/version/attribute fields were not canonicalized and could carry hidden metadata. | Inspection now requires the exact canonical header emitted by the writer; every single-byte mutation and every truncation of a baseline archive is rejected in the tamper fixture matrix. |
+| Medium | File-count and per-file limits still permitted excessive aggregate memory use. | The versioned policy now caps total session source bytes at 100 MiB and completed Safe Package bytes at 128 MiB; source rechecks reject size changes before reading content. |
 
 ## Residual risks and release gates
 
 - Detection remains deterministic and incomplete by design; a pass is not proof of safety.
 - JavaScript strings, caller-owned values and runtime copies cannot be guaranteed to be zeroized. Owned buffers are cleared where possible.
 - The custom stored-ZIP implementation has focused negative/tamper tests but has not yet undergone fuzzing or third-party audit.
-- Worst-case sessions can consume substantial memory because derivatives and the ZIP are currently assembled in memory. Streaming/resource-budget work is recommended before broad deployment.
+- Derivatives and ZIP bytes are still assembled in memory, but are now bounded by 100 MiB session input and 128 MiB package limits. Streaming remains recommended before broad deployment.
 - Dictionary SHA-256 values can reveal equality and may permit offline guessing of very low-entropy dictionaries; manifests contain no dictionary text, but a future project-keyed commitment should be considered.
 - Network-denied evidence currently covers static source policy and denied JavaScript network entry points. OS-level denial on supported Windows systems remains pending.
 - Windows filesystem behavior, installer/runtime behavior, Authenticode and cross-project Forge validation remain pending acceptance gates.

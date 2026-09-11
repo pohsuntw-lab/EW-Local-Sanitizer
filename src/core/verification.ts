@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { detectText, type DetectionContext } from "./detectors.js";
 import { isAuthenticDictionarySnapshot } from "./dictionary.js";
-import { assertSessionFileCount, isAuthenticSource, sourceHashStillMatches, type PlainTextSource } from "./intake.js";
+import { assertSessionFileCount, assertSessionTotalBytes, isAuthenticSource, sourceHashStillMatches, type PlainTextSource } from "./intake.js";
 import { PLAIN_TEXT_POLICY_VERSION, isBlockingSeverity, routeAllowed } from "./policy.js";
 import { isAuthenticTransformation } from "./transform.js";
 import type { AllowedRoute, Classification, PublicFinding, TransformResult, UnresolvedItem } from "./types.js";
@@ -73,6 +73,7 @@ export type VerificationOutcome =
 
 export function verifyForExport(request: VerificationRequest): VerificationOutcome {
   assertSessionFileCount(request.items.length);
+  assertSessionTotalBytes(request.items.map((item) => item.source.size));
   const unresolved: UnresolvedItem[] = [];
   if (!isUuid(request.projectId)) throw new Error("Project ID must be a UUID");
   if (!isAuthenticDictionarySnapshot(request.detection.dictionary)) throw new Error("Untrusted dictionary snapshot");
@@ -87,6 +88,7 @@ export function verifyForExport(request: VerificationRequest): VerificationOutco
     }
     if (!sourceHashStillMatches(item.source)) unresolved.push({ code: "SOURCE_HASH_CHANGED" });
     if (!isAuthenticTransformation(item.transformation)) unresolved.push({ code: "TRANSFORMATION_FAILED" });
+    if (item.transformation.projectId !== request.projectId) unresolved.push({ code: "TRANSFORMATION_FAILED" });
     if (item.transformation.sourceTextHash !== hashText(item.source.text)) unresolved.push({ code: "TRANSFORMATION_FAILED" });
     if (
       item.transformation.policyVersion !== PLAIN_TEXT_POLICY_VERSION ||

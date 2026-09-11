@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { encryptEnvelope } from "../../src/core/crypto-envelope.js";
 import { createDictionarySnapshot, decryptProjectDictionary, encryptProjectDictionary, type ProjectDictionary } from "../../src/core/dictionary.js";
 import { detectText } from "../../src/core/detectors.js";
 import { ProjectTokenRegistry, decryptTokenMap, encryptTokenMap } from "../../src/core/token-vault.js";
@@ -60,7 +61,7 @@ test("encrypts dictionary and token registry with versioned authenticated header
   assert.deepEqual(decryptProjectDictionary(encryptedDictionary, "correct horse battery staple"), projectDictionary);
   assert.throws(() => decryptProjectDictionary(encryptedDictionary, "wrong passphrase value"));
 
-  const registry = ProjectTokenRegistry.create({ latinCaseSensitive: false });
+  const registry = ProjectTokenRegistry.create("00000000-0000-4000-8000-000000000001", { latinCaseSensitive: false });
   const first = registry.tokenFor(" Example   Foundry ", "exact-data", "CUSTOMER");
   const second = registry.tokenFor("example foundry", "exact-data", "CUSTOMER");
   assert.equal(first.token, second.token);
@@ -69,16 +70,26 @@ test("encrypts dictionary and token registry with versioned authenticated header
   assert.deepEqual(Object.keys(header).sort(), ["authentication_tag", "cipher", "ciphertext", "content_type", "format_version", "iv", "kdf", "salt", "scrypt"]);
   assert.deepEqual(header.scrypt, { N: 16384, r: 8, p: 1, key_length: 32, maxmem: 67108864 });
   assert.equal(encryptedMap.includes(Buffer.from("Example")), false);
-  assert.equal(decryptTokenMap(encryptedMap, "correct horse battery staple").entries()[0]?.token, first.token);
+  const restored = decryptTokenMap(encryptedMap, "correct horse battery staple");
+  assert.equal(restored.projectId(), "00000000-0000-4000-8000-000000000001");
+  assert.equal(restored.entries()[0]?.token, first.token);
   assert.throws(() => decryptTokenMap(encryptedMap, "wrong passphrase value"));
   const tampered = JSON.parse(encryptedMap.toString("utf8"));
   tampered.ciphertext = `${tampered.ciphertext.slice(0, -4)}AAAA`;
   assert.throws(() => decryptTokenMap(Buffer.from(JSON.stringify(tampered)), "correct horse battery staple"));
+  const malformedRegistry = encryptEnvelope("ewmap", {
+    schema: "ewmap-registry-2",
+    project_id: "00000000-0000-4000-8000-000000000001",
+    project_scope_secret: Buffer.alloc(32, 7).toString("base64"),
+    latin_case_sensitive: false,
+    entries: [{ token: "【CUSTOMER-AAAAAAAAAAAAAAAAAAAA】", original: "Synthetic Customer", normalizedOriginal: "synthetic customer", findingType: "exact-data" }],
+  }, "correct horse battery staple");
+  assert.throws(() => decryptTokenMap(malformedRegistry, "correct horse battery staple"), /integrity/);
 });
 
 test("stable tokens are unlinkable across project scope secrets", () => {
-  const one = ProjectTokenRegistry.create({ latinCaseSensitive: false });
-  const two = ProjectTokenRegistry.create({ latinCaseSensitive: false });
+  const one = ProjectTokenRegistry.create("00000000-0000-4000-8000-000000000001", { latinCaseSensitive: false });
+  const two = ProjectTokenRegistry.create("00000000-0000-4000-8000-000000000002", { latinCaseSensitive: false });
   assert.notEqual(one.tokenFor("Same Synthetic Value", "exact-data", "ENTITY").token, two.tokenFor("Same Synthetic Value", "exact-data", "ENTITY").token);
   one.dispose();
   assert.throws(() => one.tokenFor("Another Value", "exact-data", "ENTITY"), /disposed/);
@@ -100,7 +111,7 @@ test("optional local session persistence is authenticated and does not expose re
 
 test("forces secret deletion and rejects reason, token-label and generalization injection", () => {
   const context = dictionary([]);
-  const registry = ProjectTokenRegistry.create(context.dictionary);
+  const registry = ProjectTokenRegistry.create("00000000-0000-4000-8000-000000000001", context.dictionary);
   const credentialText = "password=synthetic-password-123";
   const credential = detectText(credentialText, context)[0];
   assert.ok(credential);

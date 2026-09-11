@@ -66,6 +66,7 @@ export function transformText(text: string, findings: Finding[], decisions: Deci
   }
   output += text.slice(cursor);
   const result: TransformResult = Object.freeze({
+    projectId: context.tokenRegistry.projectId(),
     sanitizedText: output,
     sourceTextHash: createHash("sha256").update(text, "utf8").digest("hex"),
     publicFindings: Object.freeze(publicFindings.map((finding) => Object.freeze({ ...finding }))),

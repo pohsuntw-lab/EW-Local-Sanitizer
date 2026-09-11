@@ -23,16 +23,17 @@ test("blocks export bypass, unresolved findings, high keep, P3 and missing P2 co
   const detection = dictionary([]);
   const source = writeSource(directory, "Contact test.person@example.com");
   const findings = detectText(source.text, detection);
-  const registry = ProjectTokenRegistry.create(detection.dictionary);
+  const projectId = randomUUID();
+  const registry = ProjectTokenRegistry.create(projectId, detection.dictionary);
   const missing = transformText(source.text, findings, [], { dictionary: detection.dictionary, tokenRegistry: registry });
-  assert.equal(verifyForExport(verificationRequest(source, missing, detection)).status, "blocked");
+  assert.equal(verifyForExport({ ...verificationRequest(source, missing, detection), projectId }).status, "blocked");
   const kept = transformText(source.text, findings, findings.map((finding) => ({ findingId: finding.findingId, action: "keep" as const, reasonCode: "OPERATIONAL_CONTEXT" as const })), { dictionary: detection.dictionary, tokenRegistry: registry });
-  const keptOutcome = verifyForExport(verificationRequest(source, kept, detection));
+  const keptOutcome = verifyForExport({ ...verificationRequest(source, kept, detection), projectId });
   assert.equal(keptOutcome.status, "blocked");
   if (keptOutcome.status === "blocked") assert.ok(keptOutcome.unresolved.some((item) => item.code === "HIGH_OR_CRITICAL_KEEP"));
   const deleted = transformText(source.text, findings, findings.map((finding) => ({ findingId: finding.findingId, action: "delete" as const })), { dictionary: detection.dictionary, tokenRegistry: registry });
-  assert.equal(verifyForExport({ ...verificationRequest(source, deleted, detection), classification: "P3", allowedRoute: "local-only" }).status, "blocked");
-  assert.equal(verifyForExport({ ...verificationRequest(source, deleted, detection), humanConfirmed: false }).status, "blocked");
+  assert.equal(verifyForExport({ ...verificationRequest(source, deleted, detection), projectId, classification: "P3", allowedRoute: "local-only" }).status, "blocked");
+  assert.equal(verifyForExport({ ...verificationRequest(source, deleted, detection), projectId, humanConfirmed: false }).status, "blocked");
   assert.throws(() => createSafePackage({ verifiedPayloadForPackaging: () => ({}) } as unknown as VerifiedExport, join(directory, "bypass-SAFE-PACKAGE.zip")), /Unverified export capability/);
 });
 
@@ -45,6 +46,9 @@ test("binds authentic transformations to their source text and rejects forged di
   const mismatch = verifyForExport(verificationRequest(second, transformation, detection));
   assert.equal(mismatch.status, "blocked");
   if (mismatch.status === "blocked") assert.ok(mismatch.unresolved.some((item) => item.code === "TRANSFORMATION_FAILED"));
+  const crossProject = verifyForExport({ ...verificationRequest(first, transformation, detection), projectId: randomUUID() });
+  assert.equal(crossProject.status, "blocked");
+  if (crossProject.status === "blocked") assert.ok(crossProject.unresolved.some((item) => item.code === "TRANSFORMATION_FAILED"));
   const forgedDetection = { dictionary: { ...detection.dictionary, normalizedTerms: [] } };
   assert.throws(() => detectText("neutral", forgedDetection), /Untrusted dictionary snapshot/);
 });
@@ -54,7 +58,7 @@ test("binds the same dictionary to second scan and blocks report-field injection
   const detection = dictionary(["[PRIVATE NETWORK]"]);
   const source = writeSource(directory, "Host 10.10.2.15");
   const findings = detectText(source.text, detection);
-  const registry = ProjectTokenRegistry.create(detection.dictionary);
+  const registry = ProjectTokenRegistry.create(randomUUID(), detection.dictionary);
   const transformation = transformText(source.text, findings, findings.map((finding) => ({
     findingId: finding.findingId,
     action: "generalize" as const,
@@ -80,7 +84,7 @@ test("blocks changed source hash and allows medium keep only with residual risk"
   writeFileSync(path, "host 10.10.2.15");
   const source = writeSource(directory, "host 10.10.2.15");
   const findings = detectText(source.text, detection);
-  const registry = ProjectTokenRegistry.create(detection.dictionary);
+  const registry = ProjectTokenRegistry.create(randomUUID(), detection.dictionary);
   const kept = transformText(source.text, findings, findings.map((finding) => ({ findingId: finding.findingId, action: "keep" as const, reasonCode: "LOW_SENSITIVITY_ACCEPTED" as const, localReasonDetail: "Synthetic local review detail" })), { dictionary: detection.dictionary, tokenRegistry: registry });
   const outcome = verifyForExport(verificationRequest(source, kept, detection));
   assert.equal(outcome.status, "verified");
@@ -99,7 +103,7 @@ test("writes allowlisted package, validates actual ZIP SHA-256 and excludes loca
   const detection = dictionary(["Example Foundry"]);
   const source = writeSource(directory, "Contact test.person@example.com for Example Foundry.");
   const findings = detectText(source.text, detection);
-  const registry = ProjectTokenRegistry.create(detection.dictionary);
+  const registry = ProjectTokenRegistry.create(randomUUID(), detection.dictionary);
   const transformed = transformText(source.text, findings, findings.map((finding) => ({ findingId: finding.findingId, action: "tokenize" as const })), { dictionary: detection.dictionary, tokenRegistry: registry });
   const outcome = verifyForExport(verificationRequest(source, transformed, detection));
   assert.equal(outcome.status, "verified");
@@ -160,7 +164,7 @@ test("ZIP writer and post-write inspector reject duplicate, traversal, hidden, o
   assert.throws(() => inspectStoreZip(comment, new Set(["SAFE-MANIFEST.json"])), /comment/);
   const hiddenExtra = Buffer.from(readFileSync(path));
   hiddenExtra.writeUInt16LE(1, 28);
-  assert.throws(() => inspectStoreZip(hiddenExtra, new Set(["SAFE-MANIFEST.json"])), /hidden extra data/);
+  assert.throws(() => inspectStoreZip(hiddenExtra, new Set(["SAFE-MANIFEST.json"])), /noncanonical/);
 
   const duplicatePath = join(directory, "postwrite-duplicate.zip");
   writeStoreZip(duplicatePath, [{ name: "SAFE-A", data: Buffer.from("a") }, { name: "SAFE-B", data: Buffer.from("b") }]);

@@ -34,7 +34,7 @@ The application must contain no HTTP client path used by the scanning workflow. 
 - Computes SHA-256 before parsing.
 - Opens sources read-only.
 - Creates stable local source IDs without embedding full paths into exported reports.
-- Enforces the versioned plain-text policy limits: TXT/Markdown, 10 MiB per file and 100 files per session.
+- Enforces the versioned plain-text policy limits: TXT/Markdown, 10 MiB per file, 100 files and 100 MiB total source bytes per session.
 - Validates content and supported Unicode decoding independently of the extension; binary or uncertain input fails closed.
 
 ### 2. Format adapters
@@ -75,6 +75,7 @@ Suggests P0-P3 but requires a user decision. Hard rules:
 
 - Applies delete, tokenization and generalization to an intermediate semantic document.
 - Generates stable project-scoped tokens from an encrypted registry. Independent project scope secrets prevent cross-project correlation.
+- Binds each token registry and transformation to one project UUID; verification rejects cross-project registry reuse.
 - Never writes transformed data back into the original source.
 - For images, draws redactions into new pixels and re-encodes a new flattened PNG.
 
@@ -97,7 +98,7 @@ JavaScript strings, values retained by callers and runtime-managed copies cannot
 - Creates the Safe Package from an allowlist, not by zipping a working directory.
 - Runs ZIP entry inspection after creation.
 - Packaging accepts only an opaque verified-export capability created by verification; arbitrary text cannot be passed directly to the packager.
-- Reopens the ZIP and checks the allowlist, duplicates, traversal/hidden names and entry sizes. The SHA-256 of the actual completed ZIP bytes is written to a sibling `.sha256` file and local receipt, never into the ZIP itself.
+- Reopens the ZIP and checks the allowlist, duplicates, traversal/hidden names, canonical metadata headers, entry sizes and a 128 MiB aggregate package bound. The SHA-256 of the actual completed ZIP bytes is written to a sibling `.sha256` file and local receipt, never into the ZIP itself.
 
 ## Safe Manifest minimum fields
 
