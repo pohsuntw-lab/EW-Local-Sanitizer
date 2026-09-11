@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ew-local-sanitizer:schema:safe-package-manifest:0.1",
+  "title": "EW Safe Package Manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "tool", "tool_version", "project_id", "package_id", "created_at", "policy_version",
+    "dictionary", "classification", "allowed_route", "sources", "finding_counts", "unresolved_count",
+    "residual_risk_count", "second_scan", "token_map_created", "package_allowlist", "package_hash",
+    "integration_status"
+  ],
+  "properties": {
+    "schema_version": { "const": "ew-safe-package-manifest-0.1" },
+    "tool": { "const": "EW Local Sanitizer" },
+    "tool_version": { "const": "0.1.0" },
+    "project_id": { "$ref": "#/$defs/uuid" },
+    "package_id": { "$ref": "#/$defs/uuid" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "policy_version": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "dictionary": {
+      "type": "object", "additionalProperties": false, "required": ["version", "sha256"],
+      "properties": { "version": { "type": "string", "minLength": 1 }, "sha256": { "$ref": "#/$defs/sha256" } }
+    },
+    "classification": { "enum": ["P0", "P1", "P2"] },
+    "allowed_route": { "enum": ["cloud-approved", "cloud-sanitized"] },
+    "sources": {
+      "type": "array", "minItems": 1, "maxItems": 100,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["source_id", "source_sha256", "derivative_path", "derivative_sha256", "parser_coverage"],
+        "properties": {
+          "source_id": { "$ref": "#/$defs/uuid" },
+          "source_sha256": { "$ref": "#/$defs/sha256" },
+          "derivative_path": { "type": "string", "pattern": "^SAFE_SOURCE/source-[0-9]{3}\\.md$" },
+          "derivative_sha256": { "$ref": "#/$defs/sha256" },
+          "parser_coverage": { "const": "complete" }
+        }
+      }
+    },
+    "finding_counts": {
+      "type": "object", "additionalProperties": false, "required": ["by_type", "by_severity", "by_action"],
+      "properties": {
+        "by_type": { "$ref": "#/$defs/countMap" },
+        "by_severity": { "$ref": "#/$defs/countMap" },
+        "by_action": { "$ref": "#/$defs/countMap" }
+      }
+    },
+    "unresolved_count": { "const": 0 },
+    "residual_risk_count": { "type": "integer", "minimum": 0 },
+    "second_scan": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "blocking_findings", "policy_version", "dictionary_version", "dictionary_sha256"],
+      "properties": {
+        "status": { "const": "pass" },
+        "blocking_findings": { "const": 0 },
+        "policy_version": { "type": "string" },
+        "dictionary_version": { "type": "string" },
+        "dictionary_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "token_map_created": { "type": "boolean" },
+    "package_allowlist": { "type": "array", "minItems": 4, "uniqueItems": true, "items": { "type": "string" } },
+    "package_hash": {
+      "type": "object", "additionalProperties": false, "required": ["method", "location"],
+      "properties": { "method": { "const": "sha256" }, "location": { "const": "external-sibling-and-local-receipt" } }
+    },
+    "integration_status": { "const": "pending-ew-enterprise-secure-knowledge-forge" }
+  },
+  "$defs": {
+    "uuid": { "type": "string", "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "countMap": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } }
+  }
+}

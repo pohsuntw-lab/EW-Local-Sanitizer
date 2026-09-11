@@ -3,10 +3,10 @@
 - Product: EW Local Sanitizer｜企業知識本地脫敏器
 - Version: 0.1.0 MVP
 - Target: Windows 10/11 x64 desktop application
-- Stage: Plain-text security core implemented and tested
+- Stage: Phase 0 and phase 1 plain-text hardening implemented; review pending on `codex/plaintext-hardening-v0.1`
 - GitHub: Source published to https://github.com/pohsuntw-lab/EW-Local-Sanitizer
 - Public download: Blocked until tests, Windows packaging, Authenticode signing and explicit release authorization
 
 ## Next action
 
-Add document adapters, Electron UI and Windows packaging. Current core evidence: 6 synthetic tests passed for detection, forced credential deletion, tokenization, authenticated token-map encryption, Safe Package allowlisting, second-scan blocking and P3 route blocking.
+Review the phase 0 and phase 1 branch. Current evidence: lint, typecheck and build pass; 16 core/security tests and 3 independent positive/negative/tamper fixture tests pass. The branch covers read-only TXT/Markdown intake, policy-bound detection/transformation/verification, encrypted project dictionary and token registry, authenticated `.ewmap`, local manifest-schema validation, ZIP post-write inspection and actual ZIP checksums. CSV, Office, PDF, OCR, Electron and Windows packaging remain explicitly out of scope and unimplemented.

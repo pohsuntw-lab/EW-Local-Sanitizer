@@ -1,8 +1,12 @@
 node_modules/
 dist/
+.test-dist/
 coverage/
 *.log
 *.ewmap
+*.ewdict
 *-SAFE-PACKAGE.zip
+*-SAFE-PACKAGE.zip.sha256
+*-SAFE-PACKAGE.zip.receipt.json
+*.local-session
 .DS_Store
-

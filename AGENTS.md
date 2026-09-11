@@ -24,6 +24,12 @@ Build EW Local Sanitizer v0.1.0 as a Windows-first, local-only pre-upload docume
 - UI may call the core through a narrow typed IPC layer; renderer receives masked previews only when practical.
 - Pin dependencies and document each security-sensitive dependency.
 - Do not silently skip unsupported document structures.
+- For the v0.1 plain-text policy, accept only TXT/Markdown, at most 10 MiB per file and 100 files per session; content/encoding validation must not rely on extension alone.
+- High/critical `keep` is local-review-only and remains unresolved for cloud export. P3 is always local-only.
+- Packaging must consume an opaque verified result and must not expose a direct arbitrary-content export API.
+- Public reports use controlled reason codes only. Token labels and generalization replacements must be controlled policy values and scanned again.
+- Project dictionaries and token registries are encrypted local artifacts. No original dictionary/token value enters manifests, logs or Safe Packages.
+- JavaScript memory cannot promise complete zeroization; clear owned buffers in `finally` paths and document the limitation.
 
 ## Required commands
 
@@ -35,19 +41,20 @@ npm run typecheck
 npm test
 npm run test:fixtures
 npm run build
-npm run package:win
 ```
+
+`npm run package:win` remains an intentional failing placeholder until the explicitly authorized Windows packaging phase. Do not add Electron, OCR, document parsers or Windows packaging during plain-text hardening.
 
 ## Definition of done
 
 - Every MVP requirement maps to an acceptance test or an explicitly recorded manual test.
 - Network-denied core workflow passes.
 - Synthetic fixture matrix passes, including negative and tamper cases.
-- Safe Package allowlist and second scan pass.
+- Safe Package allowlist, ZIP post-write inspection, actual ZIP checksum and bound second scan pass.
 - Windows installer and portable artifacts are produced.
 - Public release remains blocked until Authenticode signing and user authorization.
+- EW Enterprise Secure Knowledge Forge cross-project schema compatibility remains pending integration.
 
 ## Stop conditions
 
 Stop before adding any network transmission, weakening an export block, supporting password-protected sources by bypassing protection, using real sensitive files, changing target OS, buying a signing certificate, publishing downloads or claiming regulatory compliance.
-

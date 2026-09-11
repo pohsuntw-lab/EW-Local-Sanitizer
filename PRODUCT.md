@@ -22,7 +22,7 @@ The product is a pre-upload sanitization tool, not a complete endpoint DLP platf
 2. Application parses visible text, supported hidden structures and image text locally.
 3. Application reports findings by type, severity, file and location.
 4. User chooses delete, tokenize, generalize or keep for each finding.
-5. High- and critical-risk findings require resolution; keeping one requires an explicit reason.
+5. High- and critical-risk findings require resolution. A local review may record keep with a controlled reason code and separate local detail, but that finding remains unresolved for cloud export.
 6. Application creates a safe derivative and scans the derivative again.
 7. Application exports an uploadable Safe Package and a separate encrypted local token map.
 8. EW Enterprise Secure Knowledge Forge consumes only the Safe Package.
@@ -59,9 +59,20 @@ Detection uses deterministic rules, exact-data dictionaries and optional local-o
 - `delete`: irreversibly remove content from the safe derivative.
 - `tokenize`: replace with stable tokens such as `【CUSTOMER-A】`; keep the map in a separate encrypted local file.
 - `generalize`: replace an exact value with an approved range or category.
-- `keep`: retain with recorded reviewer reason and residual-risk status.
+- `keep`: retain with a controlled reason code and residual-risk status.
+
+Only low/medium findings may remain in an exportable derivative. They carry residual risk and the product must not label the result completely safe. Public reports contain controlled reason codes only; free-form review details remain local and are not packaged. Token labels and generalization replacements come from controlled policy values and are scanned again.
 
 Credentials and private keys cannot be kept or tokenized into the Safe Package; they must be deleted. P3 knowledge whose structure is itself sensitive must be handled locally and cannot be made cloud-safe by renaming entities.
+
+Classification and routes are fixed for the MVP:
+
+- P0 Public: exportable only after complete verification and a passing second scan.
+- P1 Internal: exportable after all sensitive findings are handled and verification passes.
+- P2 Confidential: requires a sanitized derivative, explicit human confirmation, complete coverage and no unresolved high/critical finding.
+- P3 Restricted: always local-only. Renaming, tokenization or generalization never changes this route.
+
+An unresolved state includes a missing decision, a kept high/critical finding, a credential or private key not deleted, incomplete/unknown parser coverage, a failed transformation or second scan, a remaining high/critical second-scan finding, a P3 route violation, a changed source hash, or failed ZIP allowlist/entry verification.
 
 ## Outputs
 
@@ -79,8 +90,19 @@ Credentials and private keys cannot be kept or tokenized into the Safe Package; 
 - `<project>.ewmap`: encrypted token rehydration map;
 - local scan session and decision log;
 - original source files, which remain untouched.
+- `<project>-SAFE-PACKAGE.zip.sha256` and a local export receipt containing safe metadata, hashes, status and the output location.
 
 The `.ewmap`, originals and raw findings never enter the Safe Package.
+
+The encrypted project token registry gives the same normalized original the same token within one project. Different projects use independent random scope secrets so their identifiers cannot be correlated. The project-scoped exact-data dictionary is also encrypted locally; manifests contain only its version and hash.
+
+## Plain-text v0.1 limits
+
+- TXT and Markdown only.
+- Maximum 10 MiB per file and 100 files per session.
+- Only explicitly supported Unicode encodings are accepted; unreliable decoding fails closed.
+- Extension is never the sole format signal. Binary content, unsupported formats and uncertain coverage block export.
+- Dictionary matching uses Unicode NFKC, trimmed/collapsed whitespace and a configurable Latin case rule. Aliases are explicit and fuzzy matching is disabled.
 
 ## MVP screens
 
@@ -110,4 +132,3 @@ The `.ewmap`, originals and raw findings never enter the Safe Package.
 - Safe Package contains no originals, raw values or token map.
 - Re-scan passes before export.
 - A Safe Package can be accepted by EW Enterprise Secure Knowledge Forge.
-
