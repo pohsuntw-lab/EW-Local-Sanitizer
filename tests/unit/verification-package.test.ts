@@ -158,6 +158,50 @@ test("rechecks source integrity after verification and leaves no package artifac
   assert.equal(existsSync(`${output}.receipt.json`), false);
 });
 
+test("packages multiple sources with complete hashes, counts and integrity probes", () => {
+  const directory = mkdtempSync(join(tmpdir(), "ew-package-multiple-"));
+  const detection = dictionary([]);
+  const first = writeSource(directory, "Synthetic public procedure.", "first.txt");
+  const second = writeSource(directory, "Contact test.person@example.com.", "second.md");
+  const firstTransformation = transformAll(first, detection).transformation;
+  const secondTransformation = transformAll(second, detection).transformation;
+  const outcome = verifyForExport({
+    projectId: detection.dictionary.projectId,
+    classification: "P1",
+    allowedRoute: "cloud-sanitized",
+    items: [
+      { source: first, transformation: firstTransformation },
+      { source: second, transformation: secondTransformation },
+    ],
+    detection,
+  });
+  assert.equal(outcome.status, "verified");
+  if (outcome.status !== "verified") return;
+
+  const output = join(directory, "multiple-SAFE-PACKAGE.zip");
+  createSafePackage(outcome.capability, output);
+  const allowlist = new Set([
+    "SAFE_SOURCE/source-001.md",
+    "SAFE_SOURCE/source-002.md",
+    "SAFE-MANIFEST.json",
+    "DLP-REPORT.json",
+    "README-SAFE-UPLOAD.md",
+  ]);
+  const entries = inspectStoreZip(readFileSync(output), allowlist);
+  const manifest = JSON.parse(entries.find((entry) => entry.name === "SAFE-MANIFEST.json")!.data.toString("utf8"));
+  assert.deepEqual(manifest.sources.map((source: { source_id: string }) => source.source_id), [first.sourceId, second.sourceId]);
+  assert.equal(manifest.sources.length, 2);
+  assert.equal(manifest.finding_counts.by_type.email, 1);
+  assert.equal(manifest.finding_counts.by_severity.high, 1);
+  assert.equal(manifest.finding_counts.by_action.delete, 1);
+  assert.equal(entries.find((entry) => entry.name === "SAFE_SOURCE/source-002.md")!.data.includes(Buffer.from("test.person@example.com")), false);
+
+  writeFileSync(join(directory, "second.md"), "Changed after multi-file verification.");
+  const blockedOutput = join(directory, "multiple-changed-SAFE-PACKAGE.zip");
+  assert.throws(() => createSafePackage(outcome.capability, blockedOutput), /Source integrity changed after verification/);
+  assert.equal(existsSync(blockedOutput), false);
+});
+
 test("writes allowlisted package, validates actual ZIP SHA-256 and excludes local artifacts", () => {
   const directory = mkdtempSync(join(tmpdir(), "ew-package-"));
   const detection = dictionary(["Example Foundry"]);
