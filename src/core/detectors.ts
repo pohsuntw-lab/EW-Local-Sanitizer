@@ -35,8 +35,8 @@ const DETECTORS: readonly Detector[] = [
     pattern: /(?<![A-Za-z0-9_])["']?(?:password|passwd|api[_-]?key|access[_-]?token|client[_-]?secret)["']?\s*[:=]\s*(?:"[^"\r\n]{8,}"|'[^'\r\n]{8,}'|[^\s"'`]{8,})/gi,
   },
   { name: "email", type: "email", severity: "high", pattern: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi },
-  { name: "taiwan-mobile", type: "phone", severity: "high", pattern: /(?<!\d)09\d{2}[- ]?\d{3}[- ]?\d{3}(?!\d)/g },
-  { name: "taiwan-id-checksum", type: "taiwan-id", severity: "high", pattern: /\b[A-Z][12]\d{8}\b/g, validate: validTaiwanId },
+  { name: "taiwan-mobile", type: "phone", severity: "high", pattern: /(?<!\d)(?:(?:\+?886)[- ]?|0)9\d{2}[- ]?\d{3}[- ]?\d{3}(?!\d)/g },
+  { name: "taiwan-id-checksum", type: "taiwan-id", severity: "high", pattern: /\b[A-Z][12]\d{8}\b/gi, validate: validTaiwanId },
   { name: "taiwan-address-context", type: "address", severity: "high", pattern: /(?:台灣|臺灣)?(?:台北|臺北|新北|桃園|台中|臺中|台南|臺南|高雄|基隆|新竹|嘉義|彰化|屏東|宜蘭|花蓮|台東|臺東|澎湖|金門|連江)[市縣][^\n,，]{0,32}(?:路|街|大道|巷)\s*\d{1,5}\s*號/g },
   { name: "bank-account-context", type: "bank-account", severity: "high", pattern: /\b(?:bank[_ -]?account|account[_ -]?number)\s*[:=]\s*\d[\d -]{7,20}\d\b/gi },
   { name: "contract-identifier", type: "contract-id", severity: "high", pattern: /\b(?:CONTRACT|CTR)-[A-Z0-9][A-Z0-9-]{5,31}\b/gi },
@@ -179,7 +179,7 @@ function makeFinding(type: FindingType, severity: Severity, start: number, end: 
 
 function validTaiwanId(value: string): boolean {
   const letters = "ABCDEFGHJKLMNPQRSTUVXYWZIO";
-  const letterValue = letters.indexOf(value[0] ?? "") + 10;
+  const letterValue = letters.indexOf((value[0] ?? "").toUpperCase()) + 10;
   if (letterValue < 10) return false;
   const digits = [...value.slice(1)].map(Number);
   const sum = Math.floor(letterValue / 10) + (letterValue % 10) * 9 + digits.slice(0, 8).reduce((total, digit, index) => total + digit * (8 - index), 0) + (digits[8] ?? 0);

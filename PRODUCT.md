@@ -44,7 +44,7 @@ The MVP does not promise preservation of the original Office or PDF layout. Know
 ## Detection categories
 
 - Credentials: passwords, API keys, access tokens, private keys and connection strings, including supported single-line quoted assignment forms used by JSON, configuration and shell-style text. GitHub detection covers documented classic/app prefixes, fine-grained `github_pat_` and stateless `ghs_APPID_JWT` shapes. Private-key blocks include matching standard, RSA, EC, DSA, OpenSSH, encrypted PKCS#8-style and PGP armor labels.
-- Personal identifiers: Taiwan ID patterns, names from local dictionaries, phone, email and addresses.
+- Personal identifiers: checksum-valid Taiwan ID patterns with case-insensitive input, names from local dictionaries, Taiwan mobile numbers in local or `+886`/`886` international form, email and addresses.
 - Enterprise identifiers: customer, supplier, employee, project, product and facility names.
 - Infrastructure: public/private IP, hostnames, account names, internal URLs and device IDs.
 - Commercial information: quotations, exact costs, prices, margins, contract numbers and bank data.

@@ -37,6 +37,7 @@ Scope: phase 0 and phase 1 on `codex/plaintext-hardening-v0.1`. The review did n
 | High | Private-key detection omitted encrypted PKCS#8-style, DSA and PGP armor and allowed BEGIN/END labels of different types to form one match. | Supported private-key armor labels were expanded and bound with a regular-expression backreference; synthetic tests cover standard, encrypted, DSA and PGP blocks. |
 | High | GitHub token detection omitted the documented `github_pat_` fine-grained form and the 2026 stateless `ghs_APPID_JWT` installation-token form. | Separate bounded rules now classify synthetic fine-grained and stateless installation shapes as critical while leaving prefix-only documentation examples negative. |
 | High | Encrypted-envelope parsing accepted unknown outer fields and duplicate JSON keys, allowing unauthenticated data smuggling outside the AEAD-bound header/ciphertext semantics. | Envelopes now require exact outer/scrypt key sets and the canonical byte encoding produced by the writer; extra, duplicate, reordered or trailing data fails closed. |
+| Medium | Taiwan ID detection rejected lowercase input and the mobile detector omitted `+886`/`886` international forms, creating avoidable false negatives for common textual variants. | ID checksum validation now normalizes the leading letter for validation, and bounded mobile rules cover local and international Taiwan forms; synthetic regressions require both variants. |
 
 ## Residual risks and release gates
 
