@@ -22,7 +22,7 @@
   "engines": {
     "node": ">=22.18"
   },
-  "license": "Proprietary",
+  "license": "SEE LICENSE IN LICENSE",
   "dependencies": {
     "@tesseract.js-data/chi_tra": "1.0.0",
     "@tesseract.js-data/eng": "1.0.0",

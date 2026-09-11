@@ -23,7 +23,7 @@ This document records the gates between the current unsigned review build and an
 | Windows 10/11 human UAT | Deferred, unverified | Execute `WINDOWS_UAT.md` on supported x64 systems or obtain an explicitly approved equivalent test environment |
 | Network-denied end-to-end UI workflow | Unverified on Windows | Complete W6-W18 with synthetic fixtures and safe screenshots/log codes |
 | Application identity | Open | Provide an approved Windows application icon and publisher identity |
-| Source licensing | Open | Resolve the public repository's absent `LICENSE` file versus `package.json` declaring `Proprietary`; do not infer distribution rights |
+| Source licensing | Owner decision recorded | Proprietary rights retained in `LICENSE`; package metadata points to that notice. Obtain legal review before external binary distribution |
 | Authenticode | Not started | Select an approved certificate custody and timestamping process; purchasing or using a certificate requires separate authorization |
 | Release metadata | Not started | Prepare version, file sizes, SHA-256 values, minimum OS, release notes and support/security contact route |
 | Final release authorization | Not granted | Obtain explicit authorization only after all required evidence has been reviewed |
@@ -38,4 +38,4 @@ This document records the gates between the current unsigned review build and an
 
 ## Next authorized decision
 
-The project owner must first resolve how Windows human UAT will be completed or explicitly accepted as a documented release risk by an authorized release approver. Separately, the owner must decide the intended source/distribution license and whether to begin an Authenticode certificate process. None of these decisions is implied by continuing development.
+The project owner must next resolve the approved Windows application icon and publisher identity. Human Windows UAT remains explicitly deferred and unverified. Beginning an Authenticode certificate process still requires a separate decision and authorization. None of these decisions is implied by continuing development.
