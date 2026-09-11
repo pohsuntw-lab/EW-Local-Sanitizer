@@ -1,0 +1,24 @@
+{
+  "name": "ew-local-sanitizer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Windows-first local pre-upload sanitization for enterprise knowledge forging.",
+  "scripts": {
+    "lint": "node scripts/check-source.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.ts",
+    "test:fixtures": "node --test tests/*.test.ts",
+    "build": "tsc --outDir dist/core",
+    "package:win": "node scripts/package-win-placeholder.mjs"
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "license": "Proprietary",
+  "devDependencies": {
+    "@types/node": "24.3.1",
+    "typescript": "5.9.2"
+  }
+}
+
