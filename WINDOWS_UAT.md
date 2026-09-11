@@ -2,7 +2,7 @@
 
 Version: 0.1.0
 
-Status: Pending real-machine execution
+Status: Explicitly deferred on 2026-09-11 because the project owner has no Windows test environment; not passed and still required before public release
 
 Scope: Windows 10/11 x64, named testers only
 
