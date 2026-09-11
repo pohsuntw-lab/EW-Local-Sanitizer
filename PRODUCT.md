@@ -96,6 +96,8 @@ An unresolved state includes a missing decision, a kept high/critical finding, a
 
 The `.ewmap`, originals and raw findings never enter the Safe Package.
 
+When tokenization is used, export remains blocked until the session records that its local encrypted token map was created. Safe Package basenames use a controlled ASCII format so checksum and receipt records cannot be injected through filenames.
+
 The encrypted project token registry gives the same normalized original the same token within one project. Different projects use independent random scope secrets so their identifiers cannot be correlated. The project-scoped exact-data dictionary is also encrypted locally; manifests contain only its version and hash.
 
 ## Plain-text v0.1 limits

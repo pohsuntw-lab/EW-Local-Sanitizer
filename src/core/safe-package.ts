@@ -16,7 +16,10 @@ export interface SafePackageResult {
 
 export function createSafePackage(capability: VerifiedExport, outputPath: string): SafePackageResult {
   const verified = verifiedPayloadForPackaging(capability);
-  if (!outputPath.endsWith("-SAFE-PACKAGE.zip")) throw new Error("Safe Package filename must end with -SAFE-PACKAGE.zip");
+  const packageName = basename(outputPath);
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,100}-SAFE-PACKAGE\.zip$/.test(packageName)) {
+    throw new Error("Safe Package filename must use controlled characters and end with -SAFE-PACKAGE.zip");
+  }
   const checksumPath = `${outputPath}.sha256`;
   const receiptPath = `${outputPath}.receipt.json`;
   const derivativeEntries: ZipEntry[] = verified.items.map((item, index) => ({
@@ -106,12 +109,12 @@ export function createSafePackage(capability: VerifiedExport, outputPath: string
       if (!stored || sha256(stored.data) !== sha256(derivative.data)) throw new Error("ZIP derivative hash verification failed");
     }
     const packageHash = sha256(archive);
-    writeExclusiveFile(checksumPath, `${packageHash}  ${basename(outputPath)}\n`);
+    writeExclusiveFile(checksumPath, `${packageHash}  ${packageName}\n`);
     created.push(checksumPath);
     writeExclusiveFile(receiptPath, jsonBuffer({
       schema_version: "ew-export-receipt-0.1",
       status: "verified",
-      package_file: basename(outputPath),
+      package_file: packageName,
       output_location: outputPath,
       package_sha256: packageHash,
       derivative_sha256: derivativeHashes,

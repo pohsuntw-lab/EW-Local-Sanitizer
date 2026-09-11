@@ -16,7 +16,7 @@ interface ManifestSemantics {
   dictionary: { version: string; sha256: string };
   classification: Classification;
   allowed_route: AllowedRoute;
-  sources: { derivative_path: string }[];
+  sources: { source_id: string; derivative_path: string }[];
   package_allowlist: string[];
   second_scan: { policy_version: string; dictionary_version: string; dictionary_sha256: string };
 }
@@ -34,6 +34,9 @@ function assertManifestSemantics(manifest: ManifestSemantics): void {
     "DLP-REPORT.json",
     "README-SAFE-UPLOAD.md",
   ]);
+  if (new Set(manifest.sources.map((source) => source.source_id)).size !== manifest.sources.length) {
+    throw new Error("Manifest contains duplicate source IDs");
+  }
   if (expected.size !== manifest.sources.length + 3 || expected.size !== manifest.package_allowlist.length ||
     manifest.package_allowlist.some((entry) => !expected.has(entry))) {
     throw new Error("Manifest package allowlist is inconsistent with sources");

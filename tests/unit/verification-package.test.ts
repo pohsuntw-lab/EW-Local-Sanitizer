@@ -32,6 +32,9 @@ test("blocks export bypass, unresolved findings, high keep, P3 and missing P2 co
   assert.equal(keptOutcome.status, "blocked");
   if (keptOutcome.status === "blocked") assert.ok(keptOutcome.unresolved.some((item) => item.code === "HIGH_OR_CRITICAL_KEEP"));
   const deleted = transformText(source.text, findings, findings.map((finding) => ({ findingId: finding.findingId, action: "delete" as const })), { dictionary: detection.dictionary, tokenRegistry: registry });
+  const validRequest = { ...verificationRequest(source, deleted, detection), projectId };
+  assert.throws(() => verifyForExport({ ...validRequest, classification: "P4" as never }), /Invalid verification request/);
+  assert.throws(() => verifyForExport({ ...validRequest, items: [validRequest.items[0]!, validRequest.items[0]!] }), /Duplicate verification source/);
   assert.equal(verifyForExport({ ...verificationRequest(source, deleted, detection), projectId, classification: "P3", allowedRoute: "local-only" }).status, "blocked");
   assert.equal(verifyForExport({ ...verificationRequest(source, deleted, detection), projectId, humanConfirmed: false }).status, "blocked");
   assert.throws(() => createSafePackage({ verifiedPayloadForPackaging: () => ({}) } as unknown as VerifiedExport, join(directory, "bypass-SAFE-PACKAGE.zip")), /Unverified export capability/);
@@ -105,6 +108,9 @@ test("writes allowlisted package, validates actual ZIP SHA-256 and excludes loca
   const findings = detectText(source.text, detection);
   const registry = ProjectTokenRegistry.create(randomUUID(), detection.dictionary);
   const transformed = transformText(source.text, findings, findings.map((finding) => ({ findingId: finding.findingId, action: "tokenize" as const })), { dictionary: detection.dictionary, tokenRegistry: registry });
+  const missingTokenMap = verifyForExport({ ...verificationRequest(source, transformed, detection), tokenMapCreated: false });
+  assert.equal(missingTokenMap.status, "blocked");
+  if (missingTokenMap.status === "blocked") assert.ok(missingTokenMap.unresolved.some((item) => item.code === "TOKEN_MAP_REQUIRED"));
   const outcome = verifyForExport(verificationRequest(source, transformed, detection));
   assert.equal(outcome.status, "verified");
   if (outcome.status !== "verified") return;
@@ -126,6 +132,13 @@ test("writes allowlisted package, validates actual ZIP SHA-256 and excludes loca
   inconsistentManifest.classification = "P1";
   inconsistentManifest.allowed_route = "cloud-approved";
   assert.throws(() => assertValidManifest(inconsistentManifest), /processing route/);
+  const injectedCounts = JSON.parse(manifestEntry.data.toString("utf8"));
+  injectedCounts.finding_counts.by_type.untrusted = 1;
+  assert.throws(() => assertValidManifest(injectedCounts), /schema validation/);
+  const duplicateSource = JSON.parse(manifestEntry.data.toString("utf8"));
+  duplicateSource.sources.push({ ...duplicateSource.sources[0], derivative_path: "SAFE_SOURCE/source-002.md" });
+  duplicateSource.package_allowlist.push("SAFE_SOURCE/source-002.md");
+  assert.throws(() => assertValidManifest(duplicateSource), /duplicate source IDs/);
   assert.equal(archive.includes(Buffer.from("test.person@example.com")), false);
   assert.equal(archive.includes(Buffer.from("Example Foundry")), false);
   assert.equal(archive.includes(Buffer.from(".ewmap")), true);
@@ -137,6 +150,7 @@ test("writes allowlisted package, validates actual ZIP SHA-256 and excludes loca
   assert.equal(readFileSync(existingChecksum, "utf8"), "pre-existing-safe-metadata");
   assert.equal(existsSync(conflictOutput), false);
   assert.equal(existsSync(`${conflictOutput}.receipt.json`), false);
+  assert.throws(() => createSafePackage(outcome.capability, join(directory, "bad\nname-SAFE-PACKAGE.zip")), /controlled characters/);
 });
 
 test("scans the complete serialized public report before packaging", () => {

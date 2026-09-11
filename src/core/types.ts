@@ -68,6 +68,7 @@ export type UnresolvedCode =
   | "ROUTE_NOT_ALLOWED"
   | "SOURCE_HASH_CHANGED"
   | "ZIP_INSPECTION_FAILED"
+  | "TOKEN_MAP_REQUIRED"
   | "HUMAN_CONFIRMATION_REQUIRED";
 
 export interface UnresolvedItem {

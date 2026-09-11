@@ -72,6 +72,7 @@ export type VerificationOutcome =
   | { status: "blocked"; unresolved: UnresolvedItem[] };
 
 export function verifyForExport(request: VerificationRequest): VerificationOutcome {
+  validateVerificationRequest(request);
   assertSessionFileCount(request.items.length);
   assertSessionTotalBytes(request.items.map((item) => item.source.size));
   assertSessionFindingCount(request.items.reduce((total, item) => total + item.transformation.findingCount, 0));
@@ -81,6 +82,9 @@ export function verifyForExport(request: VerificationRequest): VerificationOutco
   if (request.classification === "P3") unresolved.push({ code: "P3_LOCAL_ONLY" });
   else if (request.allowedRoute === "local-only" || !routeAllowed(request.classification, request.allowedRoute)) unresolved.push({ code: "ROUTE_NOT_ALLOWED" });
   if (request.classification === "P2" && !request.humanConfirmed) unresolved.push({ code: "HUMAN_CONFIRMATION_REQUIRED" });
+  if (!request.tokenMapCreated && request.items.some((item) => item.transformation.tokenEntries.length > 0)) {
+    unresolved.push({ code: "TOKEN_MAP_REQUIRED" });
+  }
 
   let residualRisk = 0;
   for (const item of request.items) {
@@ -141,6 +145,25 @@ function deduplicate(items: UnresolvedItem[]): UnresolvedItem[] {
 
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function validateVerificationRequest(request: VerificationRequest): void {
+  if (!request || typeof request !== "object" || !isUuid(request.projectId) ||
+    !new Set(["P0", "P1", "P2", "P3"]).has(request.classification) ||
+    !new Set(["cloud-approved", "cloud-sanitized", "local-only"]).has(request.allowedRoute) ||
+    typeof request.humanConfirmed !== "boolean" || typeof request.tokenMapCreated !== "boolean" ||
+    !Array.isArray(request.items) || !request.detection || typeof request.detection !== "object") {
+    throw new Error("Invalid verification request");
+  }
+  const sourceIds = new Set<string>();
+  for (const item of request.items) {
+    if (!item || typeof item !== "object" || !item.source || typeof item.source !== "object" ||
+      !item.transformation || typeof item.transformation !== "object" || !Array.isArray(item.transformation.tokenEntries)) {
+      throw new Error("Invalid verification item");
+    }
+    if (sourceIds.has(item.source.sourceId)) throw new Error("Duplicate verification source");
+    sourceIds.add(item.source.sourceId);
+  }
 }
 
 function issueVerifiedExport(payload: VerifiedPayload): VerifiedExport {

@@ -20,7 +20,7 @@
     "policy_version": { "const": "ew-plaintext-policy-0.1" },
     "dictionary": {
       "type": "object", "additionalProperties": false, "required": ["version", "sha256"],
-      "properties": { "version": { "type": "string", "minLength": 1 }, "sha256": { "$ref": "#/$defs/sha256" } }
+      "properties": { "version": { "$ref": "#/$defs/version" }, "sha256": { "$ref": "#/$defs/sha256" } }
     },
     "classification": { "enum": ["P0", "P1", "P2"] },
     "allowed_route": { "enum": ["cloud-approved", "cloud-sanitized"] },
@@ -41,21 +41,21 @@
     "finding_counts": {
       "type": "object", "additionalProperties": false, "required": ["by_type", "by_severity", "by_action"],
       "properties": {
-        "by_type": { "$ref": "#/$defs/countMap" },
-        "by_severity": { "$ref": "#/$defs/countMap" },
-        "by_action": { "$ref": "#/$defs/countMap" }
+        "by_type": { "$ref": "#/$defs/typeCountMap" },
+        "by_severity": { "$ref": "#/$defs/severityCountMap" },
+        "by_action": { "$ref": "#/$defs/actionCountMap" }
       }
     },
     "unresolved_count": { "const": 0 },
-    "residual_risk_count": { "type": "integer", "minimum": 0 },
+    "residual_risk_count": { "$ref": "#/$defs/count" },
     "second_scan": {
       "type": "object", "additionalProperties": false,
       "required": ["status", "blocking_findings", "policy_version", "dictionary_version", "dictionary_sha256"],
       "properties": {
         "status": { "const": "pass" },
         "blocking_findings": { "const": 0 },
-        "policy_version": { "type": "string" },
-        "dictionary_version": { "type": "string" },
+        "policy_version": { "const": "ew-plaintext-policy-0.1" },
+        "dictionary_version": { "$ref": "#/$defs/version" },
         "dictionary_sha256": { "$ref": "#/$defs/sha256" }
       }
     },
@@ -85,6 +85,32 @@
   "$defs": {
     "uuid": { "type": "string", "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$" },
     "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-    "countMap": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } }
+    "version": { "type": "string", "pattern": "^[A-Za-z0-9._-]{1,64}$" },
+    "count": { "type": "integer", "minimum": 0, "maximum": 50000 },
+    "typeCountMap": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "private-key": { "$ref": "#/$defs/count" }, "api-token": { "$ref": "#/$defs/count" },
+        "credential": { "$ref": "#/$defs/count" }, "email": { "$ref": "#/$defs/count" },
+        "phone": { "$ref": "#/$defs/count" }, "taiwan-id": { "$ref": "#/$defs/count" },
+        "address": { "$ref": "#/$defs/count" }, "ip-address": { "$ref": "#/$defs/count" },
+        "bank-account": { "$ref": "#/$defs/count" }, "contract-id": { "$ref": "#/$defs/count" },
+        "exact-data": { "$ref": "#/$defs/count" }
+      }
+    },
+    "severityCountMap": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "low": { "$ref": "#/$defs/count" }, "medium": { "$ref": "#/$defs/count" },
+        "high": { "$ref": "#/$defs/count" }, "critical": { "$ref": "#/$defs/count" }
+      }
+    },
+    "actionCountMap": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "delete": { "$ref": "#/$defs/count" }, "tokenize": { "$ref": "#/$defs/count" },
+        "generalize": { "$ref": "#/$defs/count" }, "keep": { "$ref": "#/$defs/count" }
+      }
+    }
   }
 }
