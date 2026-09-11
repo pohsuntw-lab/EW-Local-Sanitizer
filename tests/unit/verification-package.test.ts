@@ -104,6 +104,28 @@ test("blocks changed source hash and allows medium keep only with residual risk"
   assert.equal(verifyForExport(verificationRequest(source, kept, detection, undefined, false)).status, "blocked");
 });
 
+test("rechecks source integrity after verification and leaves no package artifacts", () => {
+  const directory = mkdtempSync(join(tmpdir(), "ew-verify-late-source-change-"));
+  const detection = dictionary([]);
+  const sourcePath = join(directory, "source.txt");
+  const source = writeSource(directory, "Neutral synthetic source.");
+  const { transformation } = transformAll(source, detection);
+  const outcome = verifyForExport({
+    ...verificationRequest(source, transformation, detection, undefined, false),
+    classification: "P0",
+    allowedRoute: "cloud-approved",
+  });
+  assert.equal(outcome.status, "verified");
+  if (outcome.status !== "verified") return;
+
+  writeFileSync(sourcePath, "Changed after verification.");
+  const output = join(directory, "late-change-SAFE-PACKAGE.zip");
+  assert.throws(() => createSafePackage(outcome.capability, output), /Source integrity changed after verification/);
+  assert.equal(existsSync(output), false);
+  assert.equal(existsSync(`${output}.sha256`), false);
+  assert.equal(existsSync(`${output}.receipt.json`), false);
+});
+
 test("writes allowlisted package, validates actual ZIP SHA-256 and excludes local artifacts", () => {
   const directory = mkdtempSync(join(tmpdir(), "ew-package-"));
   const detection = dictionary(["Example Foundry"]);

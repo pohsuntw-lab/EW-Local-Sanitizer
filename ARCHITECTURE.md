@@ -104,6 +104,7 @@ JavaScript strings, values retained by callers and runtime-managed copies cannot
 - Writes the ZIP, checksum and receipt exclusively with cleanup of call-created partial files on write failure; existing targets are never overwritten.
 - Runs ZIP entry inspection after creation.
 - Packaging accepts only an opaque verified-export capability created by verification; arbitrary text cannot be passed directly to the packager.
+- The capability privately retains source path/hash/size integrity probes, without retaining source text in package state. Packaging reopens sources without following symlinks and rechecks them at entry, after ZIP inspection and after receipt creation; a mismatch fails closed and cleans up artifacts created by that call.
 - Runtime validation rejects unknown classifications/routes, invalid confirmation values, duplicate source IDs and tokenized sessions without an authentic encrypted token-map artifact covering all used tokens.
 - P2 confirmation is an opaque runtime capability bound to safe hashes of the exact reviewed project, dictionary, sources, derivatives, public findings and unresolved state; stale, forged or cross-session confirmation fails closed.
 - Package basenames use a controlled ASCII format before they enter checksum or receipt metadata.

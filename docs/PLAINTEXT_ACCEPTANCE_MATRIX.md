@@ -5,7 +5,7 @@ Evidence for branch `codex/plaintext-hardening-v0.1`. All fixtures use synthetic
 | Requirement | Automated evidence | Status |
 | --- | --- | --- |
 | A1–A3, I3 local-only/no telemetry | Source policy lint plus `core workflow completes when network entry points are denied` | Pass for the core; desktop/runtime delivery remains pending |
-| B1–B3b, I2 read-only integrity and fail-closed text intake | `intake.test.ts` source hash/mode, mutation, size, extension, encoding and binary tests | Pass for TXT/Markdown |
+| B1–B3b, F14, I2 read-only integrity and fail-closed text intake | `intake.test.ts` source hash/mode, mutation, size, extension, encoding and binary tests plus `verification-package.test.ts` post-verification mutation and artifact-cleanup test | Pass for TXT/Markdown |
 | C1–C7 deterministic detection, random IDs and encrypted dictionary | `detection-transform.test.ts` plus positive/negative fixtures | Pass for implemented plain-text detectors |
 | D1–D5a controlled transformation and residual risk | transformation injection/forced-delete tests plus verification high/medium keep tests | Pass for text derivatives |
 | E1–E7 authenticated versioned vault and project token scope | dictionary/token registry unit tests and tamper fixture | Pass; JavaScript zeroization limitation documented |

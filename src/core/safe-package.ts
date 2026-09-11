@@ -4,7 +4,7 @@ import { basename } from "node:path";
 import { assertValidManifest } from "./manifest.js";
 import { writeExclusiveFile } from "./exclusive-write.js";
 import type { PublicFinding } from "./types.js";
-import { assertVerifiedPublicOutput, verifiedPayloadForPackaging, type VerifiedExport } from "./verification.js";
+import { assertVerifiedPublicOutput, assertVerifiedSourceIntegrity, verifiedPayloadForPackaging, type VerifiedExport } from "./verification.js";
 import { inspectStoreZip, writeStoreZip, type ZipEntry } from "./zip.js";
 
 export interface SafePackageResult {
@@ -108,6 +108,7 @@ export function createSafePackage(capability: VerifiedExport, outputPath: string
       const stored = inspected.find((entry) => entry.name === derivative.name);
       if (!stored || sha256(stored.data) !== sha256(derivative.data)) throw new Error("ZIP derivative hash verification failed");
     }
+    assertVerifiedSourceIntegrity(capability);
     const packageHash = sha256(archive);
     writeExclusiveFile(checksumPath, `${packageHash}  ${packageName}\n`);
     created.push(checksumPath);
@@ -121,6 +122,7 @@ export function createSafePackage(capability: VerifiedExport, outputPath: string
       created_at: verified.verifiedAt,
     }));
     created.push(receiptPath);
+    assertVerifiedSourceIntegrity(capability);
     return { packageHash, checksumPath, receiptPath, derivativeHashes };
   } catch (error) {
     for (const path of created.reverse()) {

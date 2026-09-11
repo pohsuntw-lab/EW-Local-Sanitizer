@@ -17,6 +17,9 @@ export interface PlainTextSource {
 
 const sourcePaths = new WeakMap<object, string>();
 const authenticSources = new WeakSet<object>();
+declare const sourceIntegrityProbeBrand: unique symbol;
+export interface SourceIntegrityProbe { readonly [sourceIntegrityProbeBrand]: true }
+const sourceIntegrityProbeStates = new WeakMap<object, { path: string; hash: string; size: number }>();
 
 export function intakePlainText(path: string): PlainTextSource {
   const metadata = lstatSync(path);
@@ -70,13 +73,31 @@ export function sourceHashStillMatches(source: PlainTextSource): boolean {
   if (!authenticSources.has(source)) return false;
   const path = sourcePaths.get(source);
   if (!path) return false;
+  return pathHashStillMatches(path, source.originalHash, source.size);
+}
+
+export function createSourceIntegrityProbe(source: PlainTextSource): SourceIntegrityProbe {
+  if (!authenticSources.has(source)) throw new Error("Cannot create integrity probe for untrusted source");
+  const path = sourcePaths.get(source);
+  if (!path) throw new Error("Source path unavailable for integrity probe");
+  const probe = Object.freeze({}) as SourceIntegrityProbe;
+  sourceIntegrityProbeStates.set(probe, { path, hash: source.originalHash, size: source.size });
+  return probe;
+}
+
+export function sourceIntegrityProbeMatches(probe: SourceIntegrityProbe): boolean {
+  const state = sourceIntegrityProbeStates.get(probe);
+  return state !== undefined && pathHashStillMatches(state.path, state.hash, state.size);
+}
+
+function pathHashStillMatches(path: string, expectedHash: string, expectedSize: number): boolean {
   let descriptor: number | undefined;
   try {
     descriptor = openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
     const opened = fstatSync(descriptor);
-    if (!opened.isFile() || opened.size !== source.size || opened.size > MAX_PLAIN_TEXT_BYTES) return false;
+    if (!opened.isFile() || opened.size !== expectedSize || opened.size > MAX_PLAIN_TEXT_BYTES) return false;
     const bytes = readFileSync(descriptor);
-    return bytes.length === source.size && sha256(bytes) === source.originalHash;
+    return bytes.length === expectedSize && sha256(bytes) === expectedHash;
   } catch {
     return false;
   } finally {

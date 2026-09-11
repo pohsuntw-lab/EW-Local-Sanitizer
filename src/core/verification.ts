@@ -1,7 +1,16 @@
 import { createHash } from "node:crypto";
 import { detectText, type DetectionContext } from "./detectors.js";
 import { isAuthenticDictionarySnapshot } from "./dictionary.js";
-import { assertSessionFileCount, assertSessionTotalBytes, isAuthenticSource, sourceHashStillMatches, type PlainTextSource } from "./intake.js";
+import {
+  assertSessionFileCount,
+  assertSessionTotalBytes,
+  createSourceIntegrityProbe,
+  isAuthenticSource,
+  sourceHashStillMatches,
+  sourceIntegrityProbeMatches,
+  type PlainTextSource,
+  type SourceIntegrityProbe,
+} from "./intake.js";
 import { PLAIN_TEXT_POLICY_VERSION, assertSessionFindingCount, isBlockingSeverity, routeAllowed } from "./policy.js";
 import { isAuthenticTransformation } from "./transform.js";
 import { isAuthenticTokenMapArtifactForProject, tokenMapArtifactCovers, type EncryptedTokenMap } from "./token-vault.js";
@@ -55,13 +64,21 @@ declare const verifiedExportBrand: unique symbol;
 export interface VerifiedExport { readonly [verifiedExportBrand]: true }
 
 const verifiedCapabilities = new WeakSet<object>();
-const verifiedStates = new WeakMap<object, { packageData: VerifiedPackageData; detection: DetectionContext }>();
+const verifiedStates = new WeakMap<object, { packageData: VerifiedPackageData; detection: DetectionContext; sourceProbes: readonly SourceIntegrityProbe[] }>();
 
 export function verifiedPayloadForPackaging(capability: VerifiedExport): VerifiedPackageData {
   if (!verifiedCapabilities.has(capability)) throw new Error("Unverified export capability");
   const state = verifiedStates.get(capability);
   if (!state) throw new Error("Verified export payload unavailable");
+  assertSourceProbesMatch(state.sourceProbes);
   return state.packageData;
+}
+
+export function assertVerifiedSourceIntegrity(capability: VerifiedExport): void {
+  if (!verifiedCapabilities.has(capability)) throw new Error("Unverified export capability");
+  const state = verifiedStates.get(capability);
+  if (!state) throw new Error("Verified export state unavailable");
+  assertSourceProbesMatch(state.sourceProbes);
 }
 
 export function assertVerifiedPublicOutput(capability: VerifiedExport, value: string): void {
@@ -231,8 +248,18 @@ function issueVerifiedExport(payload: VerifiedPayload): VerifiedExport {
   const capability = Object.freeze({}) as VerifiedExport;
   const packageData = snapshotPackageData(payload);
   verifiedCapabilities.add(capability);
-  verifiedStates.set(capability, { packageData, detection: Object.freeze({ dictionary: payload.detection.dictionary }) });
+  verifiedStates.set(capability, {
+    packageData,
+    detection: Object.freeze({ dictionary: payload.detection.dictionary }),
+    sourceProbes: Object.freeze(payload.items.map((item) => createSourceIntegrityProbe(item.source))),
+  });
   return capability;
+}
+
+function assertSourceProbesMatch(probes: readonly SourceIntegrityProbe[]): void {
+  if (probes.some((probe) => !sourceIntegrityProbeMatches(probe))) {
+    throw new Error("Source integrity changed after verification");
+  }
 }
 
 function snapshotPackageData(payload: VerifiedPayload): VerifiedPackageData {
