@@ -25,7 +25,7 @@ After approval, implement in vertical slices:
 2. encrypted token vault;
 3. CSV/TSV;
 4. DOCX/XLSX/PPTX with bounded OOXML ZIP/XML parsing and format-aware second scan;
-5. PDF and image OCR;
+5. PDF text/risk inspection and standalone image OCR (implemented in content policy v0.4; PDF raster OCR remains blocked/pending);
 6. Electron UI;
 7. Windows installer and portable packaging.
 

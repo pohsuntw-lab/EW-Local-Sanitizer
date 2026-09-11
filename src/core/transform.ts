@@ -15,6 +15,7 @@ import type { Decision, Finding, PublicFinding, TokenEntry, TransformResult, Unr
 
 const FORCED_DELETE = new Set([
   "private-key", "api-token", "credential", "office-hidden-content", "office-formula", "office-external-link", "office-metadata",
+  "pdf-active-content", "pdf-image-content", "image-metadata",
 ]);
 const authenticTransformations = new WeakSet<TransformResult>();
 
@@ -38,6 +39,7 @@ export function transformText(text: string, findings: Finding[], decisions: Deci
   const unresolved: UnresolvedItem[] = [];
   const publicFindings: PublicFinding[] = [];
   const tokenEntries: TokenEntry[] = [];
+  const applications: Array<{ findingId: string; type: Finding["type"]; start: number; end: number; action: Decision["action"] }> = [];
   let output = "";
   let cursor = 0;
   let residualRisk = 0;
@@ -54,8 +56,12 @@ export function transformText(text: string, findings: Finding[], decisions: Deci
     if (FORCED_DELETE.has(finding.type) && decision.action !== "delete") {
       throw new Error(`${finding.type} findings must be deleted`);
     }
+    if (authenticFindingSetProfile(findings) === "image" && decision.action !== "delete") {
+      throw new Error("Image findings require irreversible pixel deletion in MVP");
+    }
     validateDecision(decision, finding);
     const applied = applyDecision(finding, decision, context);
+    applications.push({ findingId: finding.findingId, type: finding.type, start: finding.start, end: finding.end, action: decision.action });
     output += applied.replacement;
     cursor = finding.end;
     if (applied.tokenEntry) tokenEntries.push(applied.tokenEntry);
@@ -89,6 +95,7 @@ export function transformText(text: string, findings: Finding[], decisions: Deci
     dictionaryVersion: context.dictionary.dictionaryVersion,
     dictionaryHash: context.dictionary.dictionaryHash,
     scanProfile: authenticFindingSetProfile(findings)!,
+    applications: Object.freeze(applications.map((application) => Object.freeze({ ...application }))),
   });
   authenticTransformations.add(result);
   return result;

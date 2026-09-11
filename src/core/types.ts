@@ -15,7 +15,10 @@ export type FindingType =
   | "office-hidden-content"
   | "office-formula"
   | "office-external-link"
-  | "office-metadata";
+  | "office-metadata"
+  | "pdf-active-content"
+  | "pdf-image-content"
+  | "image-metadata";
 export type Action = "delete" | "tokenize" | "generalize" | "keep";
 export type Classification = "P0" | "P1" | "P2" | "P3";
 export type AllowedRoute = "cloud-approved" | "cloud-sanitized" | "local-only";
@@ -93,5 +96,6 @@ export interface TransformResult {
   policyVersion: string;
   dictionaryVersion: string;
   dictionaryHash: string;
-  scanProfile: "text" | "tabular" | "office";
+  scanProfile: "text" | "tabular" | "office" | "pdf" | "image";
+  applications: readonly { findingId: string; type: FindingType; start: number; end: number; action: Action }[];
 }

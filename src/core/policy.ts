@@ -1,9 +1,13 @@
 import type { AllowedRoute, Classification, FindingType, ReasonCode, Severity } from "./types.js";
 
-export const CONTENT_POLICY_VERSION = "ew-content-policy-0.3";
+export const CONTENT_POLICY_VERSION = "ew-content-policy-0.4";
 export const PLAIN_TEXT_POLICY_VERSION = CONTENT_POLICY_VERSION;
 export const MAX_PLAIN_TEXT_BYTES = 10 * 1024 * 1024;
 export const MAX_OFFICE_BYTES = 25 * 1024 * 1024;
+export const MAX_PDF_BYTES = 25 * 1024 * 1024;
+export const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
+export const MAX_IMAGE_PIXELS = 20_000_000;
+export const MAX_PDF_PAGES = 500;
 export const MAX_OOXML_ENTRIES = 2_048;
 export const MAX_OOXML_ENTRY_BYTES = 16 * 1024 * 1024;
 export const MAX_OOXML_EXPANDED_BYTES = 64 * 1024 * 1024;
@@ -49,6 +53,9 @@ export const DEFAULT_TOKEN_LABELS: Readonly<Record<FindingType, string>> = {
   "office-formula": "FORMULA",
   "office-external-link": "EXTERNAL_LINK",
   "office-metadata": "METADATA",
+  "pdf-active-content": "PDF_CONTENT",
+  "pdf-image-content": "PDF_IMAGE",
+  "image-metadata": "METADATA",
 };
 
 export const ALLOWED_TOKEN_LABELS = new Set([

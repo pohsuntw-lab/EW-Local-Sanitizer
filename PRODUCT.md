@@ -36,7 +36,7 @@ The product is a pre-upload sanitization tool, not a complete endpoint DLP platf
 | DOCX | Extract body, tables, headers, footers, comments and metadata indicators | Structured Markdown |
 | XLSX | Inspect visible/hidden sheets, cells, comments, formulas and external-link indicators | CSV per approved sheet plus Markdown index |
 | PPTX | Extract slide text, notes, comments and metadata indicators | Markdown by slide |
-| PDF | Extract text layer; flag attachments, forms, JavaScript and image-only pages when detectable | Structured Markdown; OCR text when selected |
+| PDF | Extract text layer; flag attachments, forms, JavaScript, annotations and image/image-only pages | Structured Markdown only when every page has supported text-only coverage; image-bearing PDF export is blocked in v0.4 |
 | PNG, JPG, JPEG | Local OCR and flattened irreversible redaction | Sanitized PNG |
 
 The MVP does not promise preservation of the original Office or PDF layout. Knowledge safety and semantic structure take priority over visual fidelity.
@@ -67,7 +67,7 @@ Only low/medium findings may remain in an exportable derivative. They carry resi
 
 Credentials and private keys cannot be kept or tokenized into the Safe Package; they must be deleted. P3 knowledge whose structure is itself sensitive must be handled locally and cannot be made cloud-safe by renaming entities.
 
-For the Office core, comments, deleted revision text, hidden worksheets/rows/columns, hidden slides, speaker notes, formulas, external relationships and document-property indicators are reviewable locally but forced out of cloud derivatives. The public report records only controlled finding types and masked previews. XLSX export is blocked until the caller explicitly approves all visible worksheets selected for the current core run.
+For the Office core, comments, deleted revision text, hidden worksheets/rows/columns, hidden slides, speaker notes, formulas, external relationships and document-property indicators are reviewable locally but forced out of cloud derivatives. The public report records only controlled finding types and masked previews. XLSX export is blocked until the caller explicitly approves all visible worksheets selected for the current core run. Image OCR findings are delete-only in the MVP: every affected OCR bounding box is painted into new pixels and the output is re-encoded as PNG before the same local OCR model/dictionary scan runs again.
 
 Classification and routes are fixed for the MVP:
 
@@ -104,9 +104,9 @@ The encrypted project token registry gives the same normalized original the same
 
 Each dictionary records its project UUID, and that UUID participates in the dictionary snapshot hash. A dictionary, token registry, finding set or transformation from another project cannot be substituted during verification.
 
-## Text, tabular and Office v0.3 limits
+## Content policy v0.4 limits
 
-- TXT, Markdown, CSV and TSV only in the currently implemented core. Later MVP formats remain pending.
+- The implemented core accepts TXT, Markdown, CSV, TSV, DOCX, XLSX, PPTX, text-only PDF, PNG, JPG and JPEG through dedicated content validation paths.
 - Maximum 10 MiB per file, 100 files per session and 100 MiB total source bytes per session.
 - Only explicitly supported Unicode encodings are accepted; unreliable decoding fails closed. Except for tab and line endings, C0/C1 control characters are rejected even when sparsely embedded in otherwise valid Unicode text.
 - Extension is never the sole format signal. Binary content, unsupported formats and uncertain coverage block export.
@@ -122,6 +122,9 @@ Each dictionary records its project UUID, and that UUID participates in the dict
 - XLSX derivatives contain a controlled Markdown index plus one CSV per explicitly approved visible worksheet. Formulas and hidden sheet/row/column/comment content are removed.
 - PPTX derivatives are structured Markdown by visible slide. Hidden slides, speaker notes and comments are removed.
 - Embedded media, drawings, charts, diagrams, objects, ActiveX, custom XML and package signatures currently make Office coverage incomplete. Export remains blocked until their later parser/OCR coverage is implemented.
+- PDF sources are limited to 25 MiB and 500 pages. Password/encryption/parser failures, image operations, image-only/empty pages or unknown coverage block export. Active-content indicators are forced-delete findings; layout fidelity and PDF raster OCR are not claimed.
+- PNG/JPEG sources are limited to 25 MiB and 20 million decoded pixels. Signatures must match extensions. OCR uses one explicitly selected, pinned local English or Traditional Chinese model; model/WASM files are never fetched at runtime.
+- Image derivatives are newly encoded flattened PNG pixels. PNG ancillary chunks and JPEG EXIF/GPS/device metadata are not copied. OCR is probabilistic, so complete pipeline coverage is not a claim of perfect recognition.
 
 ## MVP screens
 

@@ -58,7 +58,7 @@ export interface VerifiedPackageData {
       readonly format: PlainTextSource["format"];
     };
     readonly derivative: {
-      readonly artifacts: readonly { readonly suffix: string; readonly extension: "md" | "csv" | "tsv"; readonly text: string }[];
+      readonly artifacts: readonly ({ readonly suffix: string; readonly extension: "md" | "csv" | "tsv"; readonly text: string } | { readonly suffix: string; readonly extension: "png"; readonly bytes: Buffer })[];
       readonly publicFindings: readonly PublicFinding[];
       readonly residualRisk: number;
       readonly policyVersion: string;
@@ -151,7 +151,8 @@ export function verifyForExport(request: VerificationRequest): VerificationOutco
     if (!sourceHashStillMatches(item.source)) unresolved.push({ code: "SOURCE_HASH_CHANGED" });
     if (!isAuthenticTransformation(item.transformation)) unresolved.push({ code: "TRANSFORMATION_FAILED" });
     const expectedProfile = item.source.format === "csv" || item.source.format === "tsv" ? "tabular"
-      : item.source.format === "docx" || item.source.format === "xlsx" || item.source.format === "pptx" ? "office" : "text";
+      : item.source.format === "docx" || item.source.format === "xlsx" || item.source.format === "pptx" ? "office"
+      : item.source.format === "pdf" ? "pdf" : item.source.format === "png" || item.source.format === "jpg" || item.source.format === "jpeg" ? "image" : "text";
     if (item.transformation.scanProfile !== expectedProfile) unresolved.push({ code: "TRANSFORMATION_FAILED" });
     if (item.transformation.projectId !== request.projectId) unresolved.push({ code: "TRANSFORMATION_FAILED" });
     if (item.transformation.sourceTextHash !== hashText(item.source.text)) unresolved.push({ code: "TRANSFORMATION_FAILED" });
@@ -163,7 +164,7 @@ export function verifyForExport(request: VerificationRequest): VerificationOutco
     unresolved.push(...item.transformation.unresolved);
     residualRisk += item.transformation.residualRisk;
     try {
-      const secondScan = detectDerivative(item.transformation.sanitizedText, item.source, request.detection);
+      const secondScan = detectDerivative(item.transformation, item.source, request.detection);
       if (secondScan.some((finding) => isBlockingSeverity(finding.severity) || finding.type === "spreadsheet-formula")) {
         unresolved.push({ code: "SECOND_SCAN_BLOCKING_FINDING" });
       }
@@ -250,6 +251,7 @@ function reviewBinding(input: Pick<VerificationRequest, "projectId" | "items" | 
         dictionaryVersion: item.transformation.dictionaryVersion,
         dictionaryHash: item.transformation.dictionaryHash,
         scanProfile: item.transformation.scanProfile,
+        applicationsHash: hashText(JSON.stringify(item.transformation.applications)),
       },
     })),
   };
@@ -283,7 +285,7 @@ function snapshotPackageData(payload: VerifiedPayload): VerifiedPackageData {
       format: item.source.format,
     }),
     derivative: Object.freeze({
-      artifacts: Object.freeze(derivativeArtifactsFor(item.source, item.transformation.sanitizedText).map((artifact) => Object.freeze({ ...artifact }))),
+      artifacts: Object.freeze(derivativeArtifactsFor(item.source, item.transformation).map((artifact) => Object.freeze("bytes" in artifact ? { ...artifact, bytes: Buffer.from(artifact.bytes) } : { ...artifact }))),
       publicFindings: Object.freeze(item.transformation.publicFindings.map((finding) => Object.freeze({ ...finding }))),
       residualRisk: item.transformation.residualRisk,
       policyVersion: item.transformation.policyVersion,

@@ -35,6 +35,7 @@ The application must contain no HTTP client path used by the scanning workflow. 
 - Opens sources read-only.
 - Creates stable local source IDs without embedding full paths into exported reports.
 - Enforces the versioned content policy limits: TXT/Markdown/CSV/TSV, 10 MiB per file, 100 files and 100 MiB total source bytes per session.
+- Uses 25 MiB format limits for Office, PDF and image sources; PDF page count and decoded image pixels have separate resource ceilings.
 - Validates content and supported Unicode decoding independently of the extension; binary or uncertain input fails closed. Any C0/C1 control character other than tab, carriage return or line feed is sufficient to reject the file rather than relying on a percentage threshold.
 
 ### 2. Format adapters
@@ -50,6 +51,10 @@ Parser failure is fail-closed: the file cannot be labelled safe.
 The tabular adapter preserves CSV/TSV syntax in the derivative and scans decoded cells independently. It maps finding ranges back to the immutable source representation before transformation. Formula-like cells require a controlled apostrophe-prefix transformation; this changes the derivative intentionally so spreadsheet software treats the value as literal text.
 
 Office adapters generate a canonical semantic representation in memory and bind every finding set to an `office` scan profile. DOCX extracts body, tables, headers, footers and supported notes; XLSX resolves workbook relationships, shared strings, visible cells, hidden rows/columns/sheets, formulas and comments; PPTX resolves ordered slides, hidden slides, notes and comments. Non-visible content, formulas, external relationships and metadata indicators are forced-delete findings. XLSX emits a generic Markdown index and CSV files only for explicitly approved visible worksheets. Unsupported embedded structures set coverage to incomplete and prevent export.
+
+The PDF adapter uses Mozilla PDF.js on in-memory bytes with font rendering disabled. It extracts text page-by-page and inspects JavaScript actions, attachments, forms, annotations and image paint operators. Any image-bearing, image-only, empty or otherwise uncertain page sets coverage incomplete and blocks export; v0.4 does not rasterize or OCR PDF pages.
+
+The image adapter validates PNG/JPEG signatures, byte and pixel ceilings, decodes locally, and runs pinned `tesseract-wasm` bytes with a pinned local `eng` or `chi_tra` model. OCR words are mapped to source ranges and bounding boxes. Image findings are delete-only; boxes are painted opaque black into a new RGBA buffer and encoded as PNG, discarding source metadata. Verification OCRs that flattened buffer again with the same retained engine/model and scans the result with the same policy and dictionary. Session teardown destroys the WASM engine; JavaScript/WASM memory cannot guarantee full zeroization.
 
 ### 3. Detection engine
 
@@ -136,13 +141,13 @@ Because an archive cannot contain its own final hash, the manifest records the p
 
 Local semantic validation supplements JSON Schema by requiring type, severity and action finding-count totals to agree, residual risk to equal the keep count, unique source IDs, source/derivative-format consistency, consistent route/second-scan bindings and an allowlist exactly derived from every source derivative entry.
 
-## Text/tabular core boundaries
+## Core boundaries
 
 Parsing, detection, policy, transformation, verification and packaging are separate modules. Session data is in memory by default and discarded when the session closes. Saving a project/session requires an encrypted local format. Logs and export receipts contain only source IDs, safe filenames, hashes, counts, status and controlled error/event codes; they never contain raw findings or full source paths.
 
 The core can prove that a P2 confirmation was issued for an exact review-state hash, but without the later UI/IPC layer it cannot prove that the issuing call originated from a physical user gesture. The future narrow IPC handler must invoke confirmation only from the explicit review action.
 
-The manifest records each source format and binds it to one or more allowlisted `.md`, `.csv` or `.tsv` derivative paths. Verification reparses CSV/TSV derivatives and repeats format-aware detection with the same policy and dictionary snapshot; malformed transformed structure, a mismatched scan profile or a remaining formula prefix fails closed.
+The manifest records each source format and binds it to one or more allowlisted `.md`, `.csv`, `.tsv` or `.png` derivative paths. Verification reparses CSV/TSV derivatives, scans PDF Markdown and locally OCRs flattened PNG derivatives with the same policy and dictionary snapshot; malformed transformed structure, a mismatched `text`/`tabular`/`office`/`pdf`/`image` profile or a remaining blocking finding fails closed.
 
 ## Logging
 

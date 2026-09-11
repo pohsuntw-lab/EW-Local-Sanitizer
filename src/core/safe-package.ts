@@ -26,7 +26,7 @@ export function createSafePackage(capability: VerifiedExport, outputPath: string
     if (!/^(?:|-[a-z0-9]+(?:-[a-z0-9]+)*)$/.test(artifact.suffix)) throw new Error("Derivative suffix is not controlled");
     const entry: ZipEntry = {
       name: `SAFE_SOURCE/source-${String(index + 1).padStart(3, "0")}${artifact.suffix}.${artifact.extension}`,
-      data: Buffer.from(artifact.text, "utf8"),
+      data: "bytes" in artifact ? Buffer.from(artifact.bytes) : Buffer.from(artifact.text, "utf8"),
     };
     return { sourceIndex: index, entry };
   }));

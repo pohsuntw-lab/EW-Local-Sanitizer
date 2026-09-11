@@ -64,7 +64,7 @@ export interface DetectionSegment {
   };
 }
 
-type ScanProfile = "text" | "tabular" | "office";
+type ScanProfile = "text" | "tabular" | "office" | "pdf" | "image";
 interface FindingBinding { textHash: string; projectId: string; dictionaryVersion: string; dictionaryHash: string; policyVersion: string; scanProfile: ScanProfile }
 const findingBindings = new WeakMap<Finding, FindingBinding>();
 const findingSetBindings = new WeakMap<readonly Finding[], FindingBinding>();

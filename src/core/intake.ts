@@ -1,8 +1,10 @@
 import { createHash, randomUUID } from "node:crypto";
 import { closeSync, constants, fstatSync, lstatSync, openSync, readFileSync } from "node:fs";
 import { extname } from "node:path";
-import { MAX_OFFICE_BYTES, MAX_PLAIN_TEXT_BYTES, MAX_SESSION_FILES, MAX_SESSION_TOTAL_BYTES, PLAIN_TEXT_POLICY_VERSION } from "./policy.js";
+import { MAX_IMAGE_BYTES, MAX_OFFICE_BYTES, MAX_PDF_BYTES, MAX_PLAIN_TEXT_BYTES, MAX_SESSION_FILES, MAX_SESSION_TOTAL_BYTES, PLAIN_TEXT_POLICY_VERSION } from "./policy.js";
+import { extractImageOcr, type ImageOcrState, type OcrLanguage } from "./image-ocr.js";
 import { extractOfficeDocument, type OfficeIntakeOptions, type OfficeParseState } from "./office.js";
+import { extractPdf, type PdfParseState } from "./pdf.js";
 import { parseTabularText, type TabularDocument } from "./tabular.js";
 import type { CoverageStatus } from "./types.js";
 
@@ -11,9 +13,9 @@ export interface PlainTextSource {
   readonly text: string;
   readonly originalHash: string;
   readonly size: number;
-  readonly format: "txt" | "markdown" | "csv" | "tsv" | "docx" | "xlsx" | "pptx";
-  readonly derivativeExtension: "md" | "csv" | "tsv";
-  readonly encoding: "utf-8" | "utf-16le" | "utf-16be" | "binary-ooxml";
+  readonly format: "txt" | "markdown" | "csv" | "tsv" | "docx" | "xlsx" | "pptx" | "pdf" | "png" | "jpg" | "jpeg";
+  readonly derivativeExtension: "md" | "csv" | "tsv" | "png";
+  readonly encoding: "utf-8" | "utf-16le" | "utf-16be" | "binary-ooxml" | "binary-pdf" | "binary-image";
   readonly coverage: CoverageStatus;
   readonly policyVersion: string;
 }
@@ -22,6 +24,8 @@ const sourcePaths = new WeakMap<object, string>();
 const authenticSources = new WeakSet<object>();
 const tabularDocuments = new WeakMap<object, TabularDocument>();
 const officeStates = new WeakMap<object, OfficeParseState>();
+const pdfStates = new WeakMap<object, PdfParseState>();
+const imageStates = new WeakMap<object, ImageOcrState>();
 declare const sourceIntegrityProbeBrand: unique symbol;
 export interface SourceIntegrityProbe { readonly [sourceIntegrityProbeBrand]: true }
 const sourceIntegrityProbeStates = new WeakMap<object, { path: string; hash: string; size: number }>();
@@ -49,6 +53,27 @@ export function intakeOffice(path: string, options: OfficeIntakeOptions = {}): P
   authenticSources.add(source);
   officeStates.set(source, extracted.state);
   return source;
+}
+
+export async function intakePdf(path: string): Promise<PlainTextSource> {
+  if (extname(path).toLowerCase() !== ".pdf") throw new Error("Unsupported PDF extension");
+  const bytes = readSourceBytes(path, MAX_PDF_BYTES);
+  if (!bytes.subarray(0, 5).equals(Buffer.from("%PDF-", "ascii"))) throw new Error("PDF signature mismatch");
+  const extracted = await extractPdf(bytes);
+  const source = Object.freeze({ sourceId: randomUUID(), text: extracted.text, originalHash: sha256(bytes), size: bytes.length,
+    format: "pdf", derivativeExtension: "md", encoding: "binary-pdf", coverage: extracted.coverage, policyVersion: PLAIN_TEXT_POLICY_VERSION } satisfies PlainTextSource);
+  sourcePaths.set(source, path); authenticSources.add(source); pdfStates.set(source, extracted.state); return source;
+}
+
+export async function intakeImage(path: string, language: OcrLanguage = "eng"): Promise<PlainTextSource> {
+  const extension = extname(path).toLowerCase();
+  if (!new Set([".png", ".jpg", ".jpeg"]).has(extension)) throw new Error("Unsupported image extension");
+  const bytes = readSourceBytes(path, MAX_IMAGE_BYTES);
+  const extracted = await extractImageOcr(bytes, extension, language);
+  const source = Object.freeze({ sourceId: randomUUID(), text: extracted.text, originalHash: sha256(bytes), size: bytes.length,
+    format: extension.slice(1) as "png" | "jpg" | "jpeg", derivativeExtension: "png", encoding: "binary-image",
+    coverage: "complete", policyVersion: PLAIN_TEXT_POLICY_VERSION } satisfies PlainTextSource);
+  sourcePaths.set(source, path); authenticSources.add(source); imageStates.set(source, extracted.state); return source;
 }
 
 function intakeSupportedText(path: string, kind: "plain" | "tabular"): PlainTextSource {
@@ -84,6 +109,9 @@ export function tabularDocumentFor(source: PlainTextSource): TabularDocument | u
 }
 
 export function officeStateFor(source: PlainTextSource): OfficeParseState | undefined { return officeStates.get(source); }
+export function pdfStateFor(source: PlainTextSource): PdfParseState | undefined { return pdfStates.get(source); }
+export function imageStateFor(source: PlainTextSource): ImageOcrState | undefined { return imageStates.get(source); }
+export function releaseSourceResources(source: PlainTextSource): void { imageStates.get(source)?.destroy(); imageStates.delete(source); }
 
 export function assertSessionFileCount(count: number): void {
   if (!Number.isInteger(count) || count < 1 || count > MAX_SESSION_FILES) throw new Error("Session must contain between 1 and 100 files");
@@ -180,7 +208,7 @@ function readSourceBytes(path: string, maximumBytes: number): Buffer {
   const metadata = lstatSync(path);
   if (!metadata.isFile() || metadata.isSymbolicLink()) throw new Error("Source must be a regular non-symbolic file");
   if (metadata.size > maximumBytes) {
-    throw new Error(maximumBytes === MAX_PLAIN_TEXT_BYTES ? "Plain-text source exceeds 10 MiB policy limit" : "Office source exceeds 25 MiB policy limit");
+    throw new Error(maximumBytes === MAX_PLAIN_TEXT_BYTES ? "Plain-text source exceeds 10 MiB policy limit" : "Source exceeds 25 MiB format policy limit");
   }
   const descriptor = openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
   try {

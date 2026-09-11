@@ -18,7 +18,7 @@ interface ManifestSemantics {
   allowed_route: AllowedRoute;
   sources: {
     source_id: string;
-    source_format: "txt" | "markdown" | "csv" | "tsv" | "docx" | "xlsx" | "pptx";
+    source_format: "txt" | "markdown" | "csv" | "tsv" | "docx" | "xlsx" | "pptx" | "pdf" | "png" | "jpg" | "jpeg";
     derivative_path: string;
     derivative_sha256: string;
     derivatives: { path: string; sha256: string }[];
@@ -54,7 +54,8 @@ function assertManifestSemantics(manifest: ManifestSemantics): void {
     if (!primary || primary.path !== source.derivative_path || primary.sha256 !== source.derivative_sha256) {
       throw new Error("Manifest primary derivative is inconsistent");
     }
-    const expectedExtension = source.source_format === "csv" || source.source_format === "tsv" ? source.source_format : "md";
+    const expectedExtension = source.source_format === "csv" || source.source_format === "tsv" ? source.source_format
+      : source.source_format === "png" || source.source_format === "jpg" || source.source_format === "jpeg" ? "png" : "md";
     if (source.source_format === "xlsx") {
       const stem = /^(.+)-index\.md$/.exec(source.derivative_path)?.[1];
       if (!stem || source.derivatives.length < 2 || source.derivatives.slice(1).some((derivative, index) =>

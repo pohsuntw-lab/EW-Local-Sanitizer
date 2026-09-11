@@ -17,7 +17,7 @@
     "project_id": { "$ref": "#/$defs/uuid" },
     "package_id": { "$ref": "#/$defs/uuid" },
     "created_at": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z$" },
-    "policy_version": { "const": "ew-content-policy-0.3" },
+    "policy_version": { "const": "ew-content-policy-0.4" },
     "dictionary": {
       "type": "object", "additionalProperties": false, "required": ["version", "sha256"],
       "properties": { "version": { "$ref": "#/$defs/version" }, "sha256": { "$ref": "#/$defs/sha256" } }
@@ -32,7 +32,7 @@
         "properties": {
           "source_id": { "$ref": "#/$defs/uuid" },
           "source_sha256": { "$ref": "#/$defs/sha256" },
-          "source_format": { "enum": ["txt", "markdown", "csv", "tsv", "docx", "xlsx", "pptx"] },
+          "source_format": { "enum": ["txt", "markdown", "csv", "tsv", "docx", "xlsx", "pptx", "pdf", "png", "jpg", "jpeg"] },
           "derivative_path": { "$ref": "#/$defs/derivativePath" },
           "derivative_sha256": { "$ref": "#/$defs/sha256" },
           "derivatives": {
@@ -62,7 +62,7 @@
       "properties": {
         "status": { "const": "pass" },
         "blocking_findings": { "const": 0 },
-        "policy_version": { "const": "ew-content-policy-0.3" },
+        "policy_version": { "const": "ew-content-policy-0.4" },
         "dictionary_version": { "$ref": "#/$defs/version" },
         "dictionary_sha256": { "$ref": "#/$defs/sha256" }
       }
@@ -93,7 +93,7 @@
   "$defs": {
     "uuid": { "type": "string", "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$" },
     "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-    "derivativePath": { "type": "string", "pattern": "^SAFE_SOURCE/source-[0-9]{3}(?:-[a-z0-9]+(?:-[a-z0-9]+)*)?\\.(?:md|csv|tsv)$" },
+    "derivativePath": { "type": "string", "pattern": "^SAFE_SOURCE/source-[0-9]{3}(?:-[a-z0-9]+(?:-[a-z0-9]+)*)?\\.(?:md|csv|tsv|png)$" },
     "version": { "type": "string", "pattern": "^[A-Za-z0-9._-]{1,64}$" },
     "count": { "type": "integer", "minimum": 0, "maximum": 50000 },
     "typeCountMap": {
@@ -106,7 +106,9 @@
         "bank-account": { "$ref": "#/$defs/count" }, "contract-id": { "$ref": "#/$defs/count" },
         "exact-data": { "$ref": "#/$defs/count" }, "spreadsheet-formula": { "$ref": "#/$defs/count" },
         "office-hidden-content": { "$ref": "#/$defs/count" }, "office-formula": { "$ref": "#/$defs/count" },
-        "office-external-link": { "$ref": "#/$defs/count" }, "office-metadata": { "$ref": "#/$defs/count" }
+        "office-external-link": { "$ref": "#/$defs/count" }, "office-metadata": { "$ref": "#/$defs/count" },
+        "pdf-active-content": { "$ref": "#/$defs/count" }, "pdf-image-content": { "$ref": "#/$defs/count" },
+        "image-metadata": { "$ref": "#/$defs/count" }
       }
     },
     "severityCountMap": {
