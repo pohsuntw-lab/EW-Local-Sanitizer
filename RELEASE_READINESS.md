@@ -22,7 +22,8 @@ This document records the gates between the current unsigned review build and an
 | Code review | Open | Review and resolve Draft PR #1; do not merge while other release gates remain open |
 | Windows 10/11 human UAT | Deferred, unverified | Execute `WINDOWS_UAT.md` on supported x64 systems or obtain an explicitly approved equivalent test environment |
 | Network-denied end-to-end UI workflow | Unverified on Windows | Complete W6-W18 with synthetic fixtures and safe screenshots/log codes |
-| Application identity | Open | Provide an approved Windows application icon and publisher identity |
+| Application icon | Owner-selected and integrated | The supplied Embodied Worker elephant mark is recorded in `build/ICON_PROVENANCE.md`; verify appearance during Windows human UAT |
+| Publisher identity | Metadata recorded, certificate unverified | Build metadata names `Embodied Worker Co., Ltd.`; bind and verify the exact legal identity during the separately authorized Authenticode process |
 | Source licensing | Owner decision recorded | Proprietary rights retained in `LICENSE`; package metadata points to that notice. Obtain legal review before external binary distribution |
 | Authenticode | Not started | Select an approved certificate custody and timestamping process; purchasing or using a certificate requires separate authorization |
 | Release metadata | Not started | Prepare version, file sizes, SHA-256 values, minimum OS, release notes and support/security contact route |
@@ -38,4 +39,4 @@ This document records the gates between the current unsigned review build and an
 
 ## Next authorized decision
 
-The project owner must next resolve the approved Windows application icon and publisher identity. Human Windows UAT remains explicitly deferred and unverified. Beginning an Authenticode certificate process still requires a separate decision and authorization. None of these decisions is implied by continuing development.
+The project owner must next decide whether to begin an Authenticode certificate process. Human Windows UAT, including visual confirmation of the selected icon, remains explicitly deferred and unverified. Purchasing, enrolling, storing or using a signing certificate requires separate authorization and an approved custody process. None of these actions is implied by continuing development.

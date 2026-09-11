@@ -4,6 +4,7 @@ import { existsSync, mkdtempSync, readFileSync, symlinkSync, unlinkSync, writeFi
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { PNG } from "pngjs";
 import { assertPackagedRuntime, assertUnsignedWindowsPe, assertWindowsDistributionFiles, recordUnsignedWindowsArtifacts } from "../../src/build/windows-artifacts.js";
 
 const version = "0.1.0";
@@ -58,13 +59,23 @@ test("rejects an Authenticode-bearing PE from the unsigned test channel", () => 
 test("Windows builder config cannot publish or silently sign", () => {
   const config = readFileSync(join(process.cwd(), "electron-builder.yml"), "utf8");
   const script = readFileSync(join(process.cwd(), "scripts/package-win.mjs"), "utf8");
+  const iconBytes = readFileSync(join(process.cwd(), "build", "icon.png"));
+  const icon = PNG.sync.read(iconBytes);
   assert.match(config, /UNSIGNED-TEST-ONLY/);
   assert.match(config, /forceCodeSigning: false/);
-  assert.match(config, /signAndEditExecutable: false/);
+  assert.match(config, /signAndEditExecutable: true/);
+  assert.match(config, /signExecutable: false/);
   assert.match(config, /nsis: 1\.2\.1/);
+  assert.match(config, /icon: build\/icon\.png/);
+  assert.match(config, /legalTrademarks: Embodied Worker/);
+  assert.equal(createHash("sha256").update(iconBytes).digest("hex"), "1b8718012d27b7a2ef4c18278a5d90efc01346cff585a877e305a0e0d5818a72");
+  assert.equal(icon.width, icon.height);
+  assert.ok(icon.width >= 512);
+  assert.equal(icon.alpha, true);
   assert.match(script, /publish: "never"/);
   assert.match(script, /CSC_IDENTITY_AUTO_DISCOVERY = "false"/);
   assert.match(script, /WIN_CSC_LINK/);
+  assert.match(script, /"\.icon-ico"/);
 });
 
 test("packaged runtime allowlist requires local schema/OCR assets and excludes build tooling", () => {

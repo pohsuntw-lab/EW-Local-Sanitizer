@@ -8,6 +8,7 @@ compression: maximum
 toolsets:
   nsis: 1.2.1
 directories:
+  buildResources: build
   output: release/windows-unsigned-test
 files:
   - dist/**/*.js
@@ -24,13 +25,16 @@ electronLanguages:
   - en
   - zh-TW
 win:
+  icon: build/icon.png
+  legalTrademarks: Embodied Worker
   target:
     - nsis
     - portable
   artifactName: EW-Local-Sanitizer-${version}-Windows-${arch}-UNSIGNED-TEST-ONLY.${ext}
   executableName: EW-Local-Sanitizer
   forceCodeSigning: false
-  signAndEditExecutable: false
+  signAndEditExecutable: true
+  signExecutable: false
 nsis:
   oneClick: false
   perMachine: false

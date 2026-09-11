@@ -34,7 +34,12 @@ try {
     if (!linked.isFile() || linked.isSymbolicLink() || linked.size === 0) throw new Error(`Invalid unpacked OCR resource: ${path}`);
   }
   const executables = artifacts.filter((path) => path.endsWith(".exe") && dirname(resolve(path)) === outputDirectory);
-  rmSync(join(outputDirectory, "win-unpacked"), { recursive: true, force: true });
+  for (const generatedDirectory of ["win-unpacked", ".icon-ico"]) {
+    const generatedPath = join(outputDirectory, generatedDirectory);
+    const linked = lstatSync(generatedPath);
+    if (!linked.isDirectory() || linked.isSymbolicLink()) throw new Error(`Invalid generated build directory: ${generatedDirectory}`);
+    rmSync(generatedPath, { recursive: true });
+  }
   for (const filename of ["builder-debug.yml", "builder-effective-config.yaml", "latest.yml"]) rmSync(join(outputDirectory, filename), { force: true });
   const sourceCommit = readSourceCommit(repositoryRoot);
   const receipt = recordUnsignedWindowsArtifacts(executables, outputDirectory, manifest.version, sourceCommit);
