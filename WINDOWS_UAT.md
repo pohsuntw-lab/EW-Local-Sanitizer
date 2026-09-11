@@ -8,6 +8,14 @@ Scope: Windows 10/11 x64, named testers only
 
 Automated Windows CI separately smoke-tests portable launch, silent per-user install, installed-app launch and uninstall. It does not replace the physical-click, native-dialog, SmartScreen or end-to-end review tests below.
 
+## Automated Windows evidence
+
+- Result: Passed on `windows-2025`
+- Source commit: `27f0e69eba30b183a162acc8b523d9d8cdb92eb3`
+- Evidence: [GitHub Actions run 34599172096](https://github.com/pohsuntw-lab/EW-Local-Sanitizer/actions/runs/34599172096)
+- Covered: locked install without lifecycle scripts, lint, typecheck, synthetic tests, unsigned packaging, portable launch, silent per-user install, installed-app launch and uninstall
+- Not covered: human-visible UI journey, native file dialogs, SmartScreen handling, interactive installer choices, network-denied end-to-end sanitization or Windows 10/11 physical-machine matrix
+
 ## Safety notice
 
 The installer and portable executable are intentionally unsigned test artifacts. Windows SmartScreen may warn about an unknown publisher. Do not distribute them publicly, suppress the warning in product copy, or treat this checklist as Authenticode acceptance. Use synthetic documents only.

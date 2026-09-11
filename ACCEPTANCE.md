@@ -111,6 +111,8 @@ For v0.1, F6 means local validation against `schemas/ew-safe-package-manifest-v0
 - G8: Packaged ASAR/runtime inspection confirms the manifest schema and local OCR model/WASM resources are present while Electron Builder, publisher/update tooling, source maps and declaration files are absent.
 - G9: A least-privilege Windows CI job installs locked dependencies without lifecycle scripts, reruns lint/typecheck/synthetic tests, builds without publishing, and smoke-tests portable launch, per-user silent install, installed-app launch and uninstall. CI artifacts are not uploaded or released.
 
+G9 automated evidence: commit `27f0e69eba30b183a162acc8b523d9d8cdb92eb3` passed [Windows smoke run 34599172096](https://github.com/pohsuntw-lab/EW-Local-Sanitizer/actions/runs/34599172096). G1, G2 and H1-H4 remain subject to the separate human UAT matrix.
+
 ## H. User acceptance journey
 
 - H1: A nontechnical user can sanitize a supported synthetic document without command-line work.
