@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ew-local-sanitizer:schema:safe-package-manifest:0.1",
+  "title": "EW Safe Package Manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "tool", "tool_version", "project_id", "package_id", "created_at", "policy_version",
+    "dictionary", "classification", "allowed_route", "sources", "finding_counts", "unresolved_count",
+    "residual_risk_count", "second_scan", "token_map_created", "package_allowlist", "package_hash",
+    "integration_status"
+  ],
+  "properties": {
+    "schema_version": { "const": "ew-safe-package-manifest-0.1" },
+    "tool": { "const": "EW Local Sanitizer" },
+    "tool_version": { "const": "0.1.0" },
+    "project_id": { "$ref": "#/$defs/uuid" },
+    "package_id": { "$ref": "#/$defs/uuid" },
+    "created_at": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z$" },
+    "policy_version": { "const": "ew-content-policy-0.4" },
+    "dictionary": {
+      "type": "object", "additionalProperties": false, "required": ["version", "sha256"],
+      "properties": { "version": { "$ref": "#/$defs/version" }, "sha256": { "$ref": "#/$defs/sha256" } }
+    },
+    "classification": { "enum": ["P0", "P1", "P2"] },
+    "allowed_route": { "enum": ["cloud-approved", "cloud-sanitized"] },
+    "sources": {
+      "type": "array", "minItems": 1, "maxItems": 100,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["source_id", "source_sha256", "source_format", "derivative_path", "derivative_sha256", "derivatives", "parser_coverage"],
+        "properties": {
+          "source_id": { "$ref": "#/$defs/uuid" },
+          "source_sha256": { "$ref": "#/$defs/sha256" },
+          "source_format": { "enum": ["txt", "markdown", "csv", "tsv", "docx", "xlsx", "pptx", "pdf", "png", "jpg", "jpeg"] },
+          "derivative_path": { "$ref": "#/$defs/derivativePath" },
+          "derivative_sha256": { "$ref": "#/$defs/sha256" },
+          "derivatives": {
+            "type": "array", "minItems": 1, "maxItems": 100,
+            "items": {
+              "type": "object", "additionalProperties": false, "required": ["path", "sha256"],
+              "properties": { "path": { "$ref": "#/$defs/derivativePath" }, "sha256": { "$ref": "#/$defs/sha256" } }
+            }
+          },
+          "parser_coverage": { "const": "complete" }
+        }
+      }
+    },
+    "finding_counts": {
+      "type": "object", "additionalProperties": false, "required": ["by_type", "by_severity", "by_action"],
+      "properties": {
+        "by_type": { "$ref": "#/$defs/typeCountMap" },
+        "by_severity": { "$ref": "#/$defs/severityCountMap" },
+        "by_action": { "$ref": "#/$defs/actionCountMap" }
+      }
+    },
+    "unresolved_count": { "const": 0 },
+    "residual_risk_count": { "$ref": "#/$defs/count" },
+    "second_scan": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "blocking_findings", "policy_version", "dictionary_version", "dictionary_sha256"],
+      "properties": {
+        "status": { "const": "pass" },
+        "blocking_findings": { "const": 0 },
+        "policy_version": { "const": "ew-content-policy-0.4" },
+        "dictionary_version": { "$ref": "#/$defs/version" },
+        "dictionary_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "token_map_created": { "type": "boolean" },
+    "package_allowlist": {
+      "type": "array", "minItems": 4, "maxItems": 103, "uniqueItems": true,
+      "items": {
+        "anyOf": [
+          { "$ref": "#/$defs/derivativePath" },
+          { "const": "SAFE-MANIFEST.json" },
+          { "const": "DLP-REPORT.json" },
+          { "const": "README-SAFE-UPLOAD.md" }
+        ]
+      },
+      "allOf": [
+        { "contains": { "const": "SAFE-MANIFEST.json" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "const": "DLP-REPORT.json" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "const": "README-SAFE-UPLOAD.md" }, "minContains": 1, "maxContains": 1 }
+      ]
+    },
+    "package_hash": {
+      "type": "object", "additionalProperties": false, "required": ["method", "location"],
+      "properties": { "method": { "const": "sha256" }, "location": { "const": "external-sibling-and-local-receipt" } }
+    },
+    "integration_status": { "const": "pending-ew-enterprise-secure-knowledge-forge" }
+  },
+  "$defs": {
+    "uuid": { "type": "string", "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "derivativePath": { "type": "string", "pattern": "^SAFE_SOURCE/source-[0-9]{3}(?:-[a-z0-9]+(?:-[a-z0-9]+)*)?\\.(?:md|csv|tsv|png)$" },
+    "version": { "type": "string", "pattern": "^[A-Za-z0-9._-]{1,64}$" },
+    "count": { "type": "integer", "minimum": 0, "maximum": 50000 },
+    "typeCountMap": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "private-key": { "$ref": "#/$defs/count" }, "api-token": { "$ref": "#/$defs/count" },
+        "credential": { "$ref": "#/$defs/count" }, "email": { "$ref": "#/$defs/count" },
+        "phone": { "$ref": "#/$defs/count" }, "taiwan-id": { "$ref": "#/$defs/count" },
+        "address": { "$ref": "#/$defs/count" }, "ip-address": { "$ref": "#/$defs/count" },
+        "bank-account": { "$ref": "#/$defs/count" }, "contract-id": { "$ref": "#/$defs/count" },
+        "exact-data": { "$ref": "#/$defs/count" }, "spreadsheet-formula": { "$ref": "#/$defs/count" },
+        "office-hidden-content": { "$ref": "#/$defs/count" }, "office-formula": { "$ref": "#/$defs/count" },
+        "office-external-link": { "$ref": "#/$defs/count" }, "office-metadata": { "$ref": "#/$defs/count" },
+        "pdf-active-content": { "$ref": "#/$defs/count" }, "pdf-image-content": { "$ref": "#/$defs/count" },
+        "image-metadata": { "$ref": "#/$defs/count" }
+      }
+    },
+    "severityCountMap": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "low": { "$ref": "#/$defs/count" }, "medium": { "$ref": "#/$defs/count" },
+        "high": { "$ref": "#/$defs/count" }, "critical": { "$ref": "#/$defs/count" }
+      }
+    },
+    "actionCountMap": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "delete": { "$ref": "#/$defs/count" }, "tokenize": { "$ref": "#/$defs/count" },
+        "generalize": { "$ref": "#/$defs/count" }, "keep": { "$ref": "#/$defs/count" }
+      }
+    }
+  }
+}

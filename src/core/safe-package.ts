@@ -1,72 +1,156 @@
-import { createHash } from "node:crypto";
-import { detectText } from "./detectors.ts";
-import type { Classification, PublicFinding } from "./types.ts";
-import { writeStoreZip } from "./zip.ts";
+import { createHash, randomUUID } from "node:crypto";
+import { basename } from "node:path";
+import { assertValidManifest } from "./manifest.js";
+import { readWrittenFile, removeWrittenFile, writeExclusiveFile, type WrittenFileIdentity } from "./exclusive-write.js";
+import { MAX_SAFE_DERIVATIVE_FILES, MAX_SAFE_PACKAGE_BYTES } from "./policy.js";
+import type { PublicFinding } from "./types.js";
+import { assertVerifiedPublicOutput, assertVerifiedSourceIntegrity, verifiedPayloadForPackaging, type VerifiedExport } from "./verification.js";
+import { inspectStoreZip, writeStoreZip, type ZipEntry } from "./zip.js";
 
-interface SafePackageInput {
-  outputPath: string;
-  projectId: string;
-  sourceId: string;
-  sourceHash: string;
-  sanitizedText: string;
-  classification: Classification;
-  allowedRoute: "cloud-approved" | "cloud-sanitized" | "local-only";
-  publicFindings: PublicFinding[];
-  residualRisk: number;
-  tokenMapCreated: boolean;
+export interface SafePackageResult {
+  packageHash: string;
+  checksumPath: string;
+  receiptPath: string;
+  derivativeHashes: string[];
 }
 
-export function createSafePackage(input: SafePackageInput): { packageHash: string; derivativeHash: string } {
-  if (input.classification === "P3" || input.allowedRoute === "local-only") {
-    throw new Error("Local-only material cannot be exported as a cloud Safe Package");
+export function createSafePackage(capability: VerifiedExport, outputPath: string): SafePackageResult {
+  const verified = verifiedPayloadForPackaging(capability);
+  const packageName = basename(outputPath);
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,100}-SAFE-PACKAGE\.zip$/.test(packageName)) {
+    throw new Error("Safe Package filename must use controlled characters and end with -SAFE-PACKAGE.zip");
   }
-  const secondScan = detectText(input.sanitizedText);
-  const blocking = secondScan.filter((finding) => finding.severity === "critical" || finding.severity === "high");
-  if (blocking.length > 0) throw new Error(`Second scan found ${blocking.length} blocking finding(s)`);
-
-  const sourceName = "SAFE_SOURCE/source.md";
-  const derivative = Buffer.from(input.sanitizedText, "utf8");
-  const derivativeHash = sha256(derivative);
-  const report = {
-    schema_version: "1.0",
-    project_id: input.projectId,
-    source_id: input.sourceId,
-    finding_counts: countFindings(input.publicFindings),
-    findings: input.publicFindings,
-    residual_risk_count: input.residualRisk,
-    second_scan: { result: "pass", blocking_findings: 0 },
-    disclaimer: "Defense-in-depth only; absence of detection is not proof of safety.",
-  };
+  const checksumPath = `${outputPath}.sha256`;
+  const receiptPath = `${outputPath}.receipt.json`;
+  const derivativeRecords = verified.items.flatMap((item, index) => item.derivative.artifacts.map((artifact) => {
+    if (!/^(?:|-[a-z0-9]+(?:-[a-z0-9]+)*)$/.test(artifact.suffix)) throw new Error("Derivative suffix is not controlled");
+    const entry: ZipEntry = {
+      name: `SAFE_SOURCE/source-${String(index + 1).padStart(3, "0")}${artifact.suffix}.${artifact.extension}`,
+      data: "bytes" in artifact ? Buffer.from(artifact.bytes) : Buffer.from(artifact.text, "utf8"),
+    };
+    return { sourceIndex: index, entry };
+  }));
+  if (derivativeRecords.length > MAX_SAFE_DERIVATIVE_FILES) throw new Error("Safe Package exceeds derivative-file policy limit");
+  const derivativeEntries = derivativeRecords.map((record) => record.entry);
+  const allowlist = new Set([
+    ...derivativeEntries.map((entry) => entry.name),
+    "SAFE-MANIFEST.json",
+    "DLP-REPORT.json",
+    "README-SAFE-UPLOAD.md",
+  ]);
+  const derivativeHashes = derivativeEntries.map((entry) => sha256(entry.data));
+  const allFindings = verified.items.flatMap((item) => item.derivative.publicFindings);
+  const residualRisk = verified.items.reduce((sum, item) => sum + item.derivative.residualRisk, 0);
   const manifest = {
-    schema_version: "1.0",
+    schema_version: "ew-safe-package-manifest-0.1",
     tool: "EW Local Sanitizer",
     tool_version: "0.1.0",
-    project_id: input.projectId,
-    package_id: `${input.projectId}-${input.sourceId}`,
-    source: { source_id: input.sourceId, sha256: input.sourceHash },
-    derivative: { path: sourceName, sha256: derivativeHash },
-    classification: input.classification,
-    allowed_route: input.allowedRoute,
-    parser_coverage: "plain-text-complete",
-    token_map_created: input.tokenMapCreated,
-    token_map_in_package: false,
-    allowlist: [sourceName, "SAFE-MANIFEST.json", "DLP-REPORT.json", "README-SAFE-UPLOAD.md"],
-  };
-  const entries = [
-    { name: sourceName, data: derivative },
-    { name: "SAFE-MANIFEST.json", data: jsonBuffer(manifest) },
-    { name: "DLP-REPORT.json", data: jsonBuffer(report) },
-    {
-      name: "README-SAFE-UPLOAD.md",
-      data: Buffer.from(
-        "# EW Safe Package\n\nUpload this package only to an enterprise-approved AI environment. Keep originals and .ewmap files local. A passed scan is not a confidentiality guarantee.\n",
-        "utf8",
-      ),
+    project_id: verified.projectId,
+    package_id: randomUUID(),
+    created_at: verified.verifiedAt,
+    policy_version: verified.items[0]?.derivative.policyVersion,
+    dictionary: {
+      version: verified.dictionary.version,
+      sha256: verified.dictionary.hash,
     },
+    classification: verified.classification,
+    allowed_route: verified.allowedRoute,
+    sources: verified.items.map((item, index) => {
+      const derivatives = derivativeRecords.filter((record) => record.sourceIndex === index).map((record) => ({
+        path: record.entry.name,
+        sha256: sha256(record.entry.data),
+      }));
+      if (derivatives.length === 0) throw new Error("Source produced no safe derivative");
+      return {
+      source_id: item.source.sourceId,
+      source_sha256: item.source.originalHash,
+      source_format: item.source.format,
+      derivative_path: derivatives[0]!.path,
+      derivative_sha256: derivatives[0]!.sha256,
+      derivatives,
+      parser_coverage: item.source.coverage,
+      };
+    }),
+    finding_counts: countFindings(allFindings),
+    unresolved_count: 0,
+    residual_risk_count: residualRisk,
+    second_scan: {
+      status: "pass",
+      blocking_findings: verified.secondScanBlockingFindings,
+      policy_version: verified.items[0]?.derivative.policyVersion,
+      dictionary_version: verified.dictionary.version,
+      dictionary_sha256: verified.dictionary.hash,
+    },
+    token_map_created: verified.tokenMapCreated,
+    package_allowlist: [...allowlist],
+    package_hash: { method: "sha256", location: "external-sibling-and-local-receipt" },
+    integration_status: "pending-ew-enterprise-secure-knowledge-forge",
+  };
+  assertValidManifest(manifest);
+  const report = {
+    schema_version: "ew-dlp-report-0.1",
+    package_id: manifest.package_id,
+    finding_counts: manifest.finding_counts,
+    findings: allFindings,
+    unresolved_count: 0,
+    residual_risk_count: residualRisk,
+    second_scan: { status: "pass", blocking_findings: 0 },
+    disclaimer: "Defense-in-depth only; absence of detection is not proof of safety.",
+  };
+  const reportBuffer = jsonBuffer(report);
+  const manifestBuffer = jsonBuffer(manifest);
+  const readmeBuffer = Buffer.from(
+    "# EW Safe Package\n\nUpload only to an enterprise-approved AI environment. Keep originals, project dictionaries and .ewmap files local. A passed scan is not a confidentiality guarantee.\n",
+    "utf8",
+  );
+  for (const publicOutput of [manifestBuffer, reportBuffer, readmeBuffer]) {
+    assertVerifiedPublicOutput(capability, publicOutput.toString("utf8"));
+  }
+  const entries: ZipEntry[] = [
+    ...derivativeEntries,
+    { name: "SAFE-MANIFEST.json", data: manifestBuffer },
+    { name: "DLP-REPORT.json", data: reportBuffer },
+    { name: "README-SAFE-UPLOAD.md", data: readmeBuffer },
   ];
-  writeStoreZip(input.outputPath, entries);
-  const packageHash = sha256(Buffer.concat(entries.flatMap((entry) => [Buffer.from(entry.name), entry.data])));
-  return { packageHash, derivativeHash };
+
+  const created: Array<{ path: string; identity: WrittenFileIdentity }> = [];
+  try {
+    const zipIdentity = writeStoreZip(outputPath, entries);
+    created.push({ path: outputPath, identity: zipIdentity });
+    const archive = readWrittenFile(outputPath, zipIdentity, MAX_SAFE_PACKAGE_BYTES);
+    const inspected = inspectStoreZip(archive, allowlist);
+    for (const derivative of derivativeEntries) {
+      const stored = inspected.find((entry) => entry.name === derivative.name);
+      if (!stored || sha256(stored.data) !== sha256(derivative.data)) throw new Error("ZIP derivative hash verification failed");
+    }
+    assertVerifiedSourceIntegrity(capability);
+    const packageHash = sha256(archive);
+    const checksum = Buffer.from(`${packageHash}  ${packageName}\n`, "utf8");
+    const checksumIdentity = writeExclusiveFile(checksumPath, checksum);
+    created.push({ path: checksumPath, identity: checksumIdentity });
+    const receipt = jsonBuffer({
+      schema_version: "ew-export-receipt-0.1",
+      status: "verified",
+      package_file: packageName,
+      output_location: outputPath,
+      package_sha256: packageHash,
+      derivative_sha256: derivativeHashes,
+      created_at: verified.verifiedAt,
+    });
+    const receiptIdentity = writeExclusiveFile(receiptPath, receipt);
+    created.push({ path: receiptPath, identity: receiptIdentity });
+    assertVerifiedSourceIntegrity(capability);
+    if (sha256(readWrittenFile(outputPath, zipIdentity, MAX_SAFE_PACKAGE_BYTES)) !== packageHash ||
+      !readWrittenFile(checksumPath, checksumIdentity, checksum.length).equals(checksum) ||
+      !readWrittenFile(receiptPath, receiptIdentity, receipt.length).equals(receipt)) {
+      throw new Error("Generated package artifacts changed before completion");
+    }
+    assertVerifiedSourceIntegrity(capability);
+    return { packageHash, checksumPath, receiptPath, derivativeHashes };
+  } catch (error) {
+    for (const artifact of created.reverse()) removeWrittenFile(artifact.path, artifact.identity);
+    throw error;
+  }
 }
 
 function jsonBuffer(value: unknown): Buffer {
@@ -77,9 +161,12 @@ function sha256(value: Buffer): string {
   return createHash("sha256").update(value).digest("hex");
 }
 
-function countFindings(findings: PublicFinding[]): Record<string, number> {
-  const counts: Record<string, number> = {};
-  for (const finding of findings) counts[`${finding.severity}:${finding.action}`] = (counts[`${finding.severity}:${finding.action}`] || 0) + 1;
-  return counts;
+function countFindings(findings: readonly PublicFinding[]): { by_type: Record<string, number>; by_severity: Record<string, number>; by_action: Record<string, number> } {
+  const result = { by_type: {} as Record<string, number>, by_severity: {} as Record<string, number>, by_action: {} as Record<string, number> };
+  for (const finding of findings) {
+    result.by_type[finding.type] = (result.by_type[finding.type] ?? 0) + 1;
+    result.by_severity[finding.severity] = (result.by_severity[finding.severity] ?? 0) + 1;
+    result.by_action[finding.action] = (result.by_action[finding.action] ?? 0) + 1;
+  }
+  return result;
 }
-

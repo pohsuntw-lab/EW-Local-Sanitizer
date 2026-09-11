@@ -1,0 +1,52 @@
+appId: tw.com.embodiedworker.ewlocalsanitizer
+productName: EW Local Sanitizer
+copyright: Copyright © 2026 Embodied Worker Co., Ltd.
+asar: true
+npmRebuild: false
+buildDependenciesFromSource: false
+compression: maximum
+toolsets:
+  nsis: 1.2.1
+directories:
+  buildResources: build
+  output: release/windows-unsigned-test
+files:
+  - dist/**/*.js
+  - dist/renderer/**/*
+  - schemas/ew-safe-package-manifest-v0.1.schema.json
+  - package.json
+  - '!**/*.map'
+  - '!**/*.d.ts'
+  - '!dist/build/**/*'
+asarUnpack:
+  - node_modules/tesseract-wasm/dist/*.wasm
+  - node_modules/@tesseract.js-data/**/*
+electronLanguages:
+  - en
+  - zh-TW
+win:
+  icon: build/icon.png
+  legalTrademarks: Embodied Worker
+  target:
+    - nsis
+    - portable
+  artifactName: EW-Local-Sanitizer-${version}-Windows-${arch}-UNSIGNED-TEST-ONLY.${ext}
+  executableName: EW-Local-Sanitizer
+  forceCodeSigning: false
+  signAndEditExecutable: true
+  signExecutable: false
+nsis:
+  oneClick: false
+  include: build/generated/nsis-eula.nsh
+  installerLanguages:
+    - zh_TW
+    - en_US
+  multiLanguageInstaller: true
+  perMachine: false
+  allowElevation: false
+  allowToChangeInstallationDirectory: true
+  artifactName: EW-Local-Sanitizer-${version}-Windows-${arch}-Setup-UNSIGNED-TEST-ONLY.${ext}
+  uninstallDisplayName: EW Local Sanitizer (Unsigned Test Build)
+  differentialPackage: false
+portable:
+  artifactName: EW-Local-Sanitizer-${version}-Windows-${arch}-Portable-UNSIGNED-TEST-ONLY.${ext}

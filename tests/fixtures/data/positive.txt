@@ -1,0 +1,7 @@
+Synthetic fixture only.
+Contact test.person@example.com or 0912-345-678.
+Taiwan ID A123456789.
+Address 台北市中正區測試路 123 號.
+Contract CTR-SYNTH-001.
+api_key=sk-abcdefghijklmnopqrstuvwxyz123456
+Customer Example Foundry.

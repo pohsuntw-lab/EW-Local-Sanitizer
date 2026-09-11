@@ -1,0 +1,97 @@
+﻿EW Local Sanitizer End User License Agreement and Acceptable Use Rules
+
+Version: EWLS-EULA-1.0
+Published effective date: September 11, 2026
+Effective date for the current user: the software installation date
+Rights holder: 具象職人股份有限公司 (Embodied Worker Co., Ltd.)
+
+Copyright © 2026 Embodied Worker Co., Ltd. All rights reserved.
+
+Please read this agreement carefully before installing, copying, or using the software.
+
+By actively selecting “I have read, understood, and agree” and pressing “Agree and Install,” you confirm that you have read and understood this agreement and agree to be bound by it. If you do not agree to any part of this agreement, do not install, copy, or use the software.
+
+Article 1 — Software and Ownership
+
+1. “EW Local Sanitizer,” including its program, interface, detection and processing rules, data structures, graphic design, instructions, examples, updates, and related documents, is protected by copyright and other intellectual property rights owned by Embodied Worker Co., Ltd. or its lawful licensors unless expressly stated otherwise.
+2. This agreement grants only a limited license to use the software within the agreed scope. It does not transfer ownership, copyright, or any other intellectual property right in the software.
+3. Third-party and open-source components included with the software remain subject to their respective license terms and ownership.
+
+Article 2 — Permitted Use
+
+1. You may install and use the software only within the device count, user count, organization scope, term, and purpose defined by an applicable purchase, subscription, project contract, or separate written authorization from Embodied Worker Co., Ltd.
+2. Within that authorized scope, you may locally scan, review, transform, and export derivative content from documents that you are authorized to process.
+3. Unless a contract or written authorization states otherwise, this license is limited, non-exclusive, non-transferable, and non-sublicensable.
+4. Reasonable copies required for system backup or disaster recovery may be retained but may not be made available to an unauthorized person.
+
+Article 3 — Prohibited Conduct
+
+Without prior written permission from Embodied Worker Co., Ltd., you must not:
+
+1. sell, resell, rent, lend, sublicense, give away, publicly distribute, or otherwise provide the software to an unauthorized third party;
+2. install, copy, or use the software beyond the authorized device count, user count, organization scope, or term;
+3. remove, obscure, alter, or circumvent copyright notices, rights notices, license confirmation, or technical protection measures;
+4. impersonate Embodied Worker Co., Ltd. when selling, promoting, licensing, or providing the software;
+5. repackage, rename, or combine the software and represent it as software owned by you;
+6. crack, decompile, disassemble, reverse engineer, or attempt to obtain source code without authorization, except where applicable law mandatorily permits the activity and does not allow contractual exclusion;
+7. use the software for unlawful, infringing, fraudulent, system-damaging, or rights-violating conduct; or
+8. assist another person in any of the preceding conduct.
+
+Article 4 — Rights in User Documents and Derivative Data
+
+1. Rights in source documents, dictionaries, project content, and derivative content that you lawfully import or create remain with you or the original rights holder.
+2. You are responsible for ensuring that data you input, process, retain, or export has a lawful source and all necessary permissions and consents.
+3. Ownership of the software is separate from ownership of user data. Embodied Worker Co., Ltd. does not acquire ownership of your documents or business data merely because you use the software.
+
+Article 5 — Local Processing and Privacy Boundary
+
+1. This version is designed for local processing and contains no telemetry, cloud scanning, or automatic-upload feature.
+2. This agreement does not provide blanket consent for secret collection, transmission, or use of user documents, original sensitive values, or complete local paths.
+3. If a future version adds online verification, data transmission, or personal-data processing, it must provide a separate clear notice and obtain any consent required by law.
+
+Article 6 — Security Functions and User Responsibility
+
+1. The software is a local pre-upload document sanitization and risk-review aid. It is not a complete endpoint DLP system, regulatory certification, or automatic compliance determination.
+2. Detection, classification, parsing, OCR, transformation, and second-scan results may be limited by document quality, format, language, rule coverage, and other technical factors. The software does not guarantee perfect detection, complete anonymity, or suitability for every document.
+3. You remain responsible for reviewing findings, residual risk, parser coverage, derivative files, and each Safe Package and for deciding whether an output may be used or transmitted under your organization’s policy.
+4. P3 Restricted content and other content blocked from export by the software must remain local-only. You must not bypass an export block, tamper with verification results, or otherwise force an export.
+5. The software does not replace decisions that must be made by authorized legal, security, privacy, trade-secret, or other responsible personnel.
+
+Article 7 — Data Retention and Backups
+
+1. You are responsible for securely backing up important source documents, projects, dictionaries, key material, and lawful outputs.
+2. The software is designed not to modify original files. You remain responsible for checking file permissions, storage locations, and backup arrangements before use.
+3. You must protect passphrases, encrypted projects, `.ewmap` files, exact-data dictionaries, and other locally stored sensitive data from unauthorized access.
+
+Article 8 — Updates and Agreement Versions
+
+1. Updates, upgrades, maintenance, and technical support are governed by the applicable contract, plan, or separate announcement.
+2. Material changes to this agreement must be displayed as a new agreement version and require renewed explicit acceptance.
+3. An installer labelled as a test, unsigned, or internal-use build must not be described or distributed as an official public release.
+
+Article 9 — Breach and Termination
+
+1. If you breach this agreement, exceed the authorized scope, or infringe the lawful rights of Embodied Worker Co., Ltd. or a third party, Embodied Worker Co., Ltd. may require you to stop using the software, remove unauthorized copies, and bear responsibility as provided by law.
+2. After termination, you must stop using and remove unauthorized retained copies of the software. Source documents and lawful outputs that you own do not thereby become property of Embodied Worker Co., Ltd.
+
+Article 10 — Limitation of Liability
+
+1. To the extent permitted by applicable law, losses caused by unlawful use, incorrect configuration, bypassing safety blocks, failure to review residual risk, inadequate backup, or a third-party system are borne by the party legally responsible for them.
+2. Nothing in this agreement excludes or limits liability that cannot lawfully be excluded or limited, or affects rights granted by mandatory law.
+3. This article does not state that Embodied Worker Co., Ltd. is exempt from all responsibility regardless of cause.
+
+Article 11 — Governing Law, Disputes, and Contact
+
+1. This agreement is generally governed by the laws of the Republic of China (Taiwan). The parties should first attempt to resolve disputes through good-faith consultation.
+2. If litigation is required, jurisdiction is determined by applicable law, the parties’ contracts, and the user’s legal status. This agreement does not exclude statutory jurisdiction or other mandatory protections available to consumers.
+3. Rights holder: Embodied Worker Co., Ltd. / 具象職人股份有限公司
+4. Email: pohsun@embodiedworker.com
+5. Official website: www.embodiedworker.com
+
+Article 12 — Entire Agreement and Severability
+
+If any provision of this agreement is found invalid or unenforceable, the remaining provisions remain effective. If a purchase contract, project contract, or written agreement between the parties provides otherwise, its valid terms govern.
+
+Confirmation
+
+“I confirm that I have the authority required to accept this agreement on behalf of the current user or organization, and that I have read, understood, and agreed to this agreement.”
