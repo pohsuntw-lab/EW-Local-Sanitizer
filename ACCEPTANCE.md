@@ -15,7 +15,7 @@ Version: 0.1.0 MVP
 - B2: Supported formats are opened read-only and never overwritten.
 - B3: Parser failure, encrypted input, unsupported feature or incomplete OCR coverage is visible and blocks a safe status.
 - B3a: Plain-text intake supports TXT/Markdown only, rejects files over 10 MiB, sessions over 100 files or 100 MiB aggregate source bytes, and does not rely on extension alone.
-- B3b: Unsupported encodings, binary content masquerading as text and uncertain decoding fail closed.
+- B3b: Unsupported encodings, binary content masquerading as text and uncertain decoding fail closed; a single disallowed C0/C1 control character is rejected even in otherwise valid Unicode text.
 - B4: DOCX test detects text in body, table, header/footer and comment fixtures.
 - B5: XLSX test identifies hidden sheets, hidden rows/columns, formulas, comments and external-link indicators in fixtures.
 - B6: PPTX test identifies slide text, speaker notes, comments and document-property indicators in fixtures.

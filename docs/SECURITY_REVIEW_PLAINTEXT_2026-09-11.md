@@ -31,6 +31,7 @@ Scope: phase 0 and phase 1 on `codex/plaintext-hardening-v0.1`. The review did n
 | High | P2 confirmation was a caller-provided boolean and was not bound to the content actually reviewed. | Confirmation is now an opaque runtime capability bound to safe hashes of the project, dictionary, source, derivative, public report and unresolved state. Missing, forged, stale and cross-project confirmation fails closed. |
 | High | A source could change after verified-capability issuance but before or during packaging, leaving a time-of-check/time-of-use gap. | Verified capabilities now carry private path/hash/size probes. Packaging rechecks source bytes at entry, after ZIP inspection and after receipt creation, and removes every artifact created by the failed call. |
 | High | Post-write ZIP validation and failure cleanup operated only by pathname, so replacement could make the reported hash refer to another object or cause cleanup to remove a substituted file. | Exclusive writes return a device/inode/size identity. ZIP, checksum and receipt validation and cleanup are restricted to the same regular non-symbolic files created by the export call; replacements fail closed and are preserved. |
+| Medium | Binary-control detection used a one-percent threshold, allowing a sparse C0/C1 control byte in otherwise valid Unicode text to pass intake. | Plain-text intake now rejects every C0/C1 control character except tab, carriage return and line feed; regression cases cover sparse C0 and C1 input. |
 
 ## Residual risks and release gates
 

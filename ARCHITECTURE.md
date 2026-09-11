@@ -35,7 +35,7 @@ The application must contain no HTTP client path used by the scanning workflow. 
 - Opens sources read-only.
 - Creates stable local source IDs without embedding full paths into exported reports.
 - Enforces the versioned plain-text policy limits: TXT/Markdown, 10 MiB per file, 100 files and 100 MiB total source bytes per session.
-- Validates content and supported Unicode decoding independently of the extension; binary or uncertain input fails closed.
+- Validates content and supported Unicode decoding independently of the extension; binary or uncertain input fails closed. Any C0/C1 control character other than tab, carriage return or line feed is sufficient to reject the file rather than relying on a percentage threshold.
 
 ### 2. Format adapters
 

@@ -136,13 +136,11 @@ function rejectKnownBinary(bytes: Buffer): void {
 }
 
 function containsBinaryControls(text: string): boolean {
-  if (text.includes("\0")) return true;
-  let controls = 0;
   for (const character of text) {
     const code = character.codePointAt(0) ?? 0;
-    if ((code < 0x20 && character !== "\n" && character !== "\r" && character !== "\t") || code === 0x7f) controls += 1;
+    if ((code < 0x20 && character !== "\n" && character !== "\r" && character !== "\t") || (code >= 0x7f && code <= 0x9f)) return true;
   }
-  return text.length > 0 && controls / text.length > 0.01;
+  return false;
 }
 
 function sha256(value: Buffer): string {

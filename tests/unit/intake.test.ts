@@ -38,6 +38,12 @@ test("rejects invalid encoding, binary masquerade, known binary and oversize inp
   const binary = join(directory, "binary.md");
   writeFileSync(binary, Buffer.from([0x61, 0x00, 0x62, 0x00]));
   assert.throws(() => intakePlainText(binary), /Binary/);
+  const sparseControl = join(directory, "sparse-control.txt");
+  writeFileSync(sparseControl, `A long otherwise textual prefix ${"a".repeat(256)}\u0001 suffix`);
+  assert.throws(() => intakePlainText(sparseControl), /Binary/);
+  const c1Control = join(directory, "c1-control.md");
+  writeFileSync(c1Control, `Synthetic text ${String.fromCodePoint(0x85)} with a C1 control`);
+  assert.throws(() => intakePlainText(c1Control), /Binary/);
   const zip = join(directory, "archive.txt");
   writeFileSync(zip, Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x00]));
   assert.throws(() => intakePlainText(zip), /binary format/);
