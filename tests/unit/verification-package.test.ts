@@ -56,6 +56,25 @@ test("blocks export bypass, unresolved findings, high keep, P3 and missing P2 co
   assert.throws(() => createSafePackage({ verifiedPayloadForPackaging: () => ({}) } as unknown as VerifiedExport, join(directory, "bypass-SAFE-PACKAGE.zip")), /Unverified export capability/);
 });
 
+test("enforces the complete P0-P3 verification route matrix", () => {
+  const directory = mkdtempSync(join(tmpdir(), "ew-route-matrix-"));
+  const detection = dictionary([]);
+  const source = writeSource(directory, "Synthetic public procedure.");
+  const { transformation } = transformAll(source, detection);
+  const unconfirmed = verificationRequest(source, transformation, detection, undefined, false);
+  const confirmed = verificationRequest(source, transformation, detection);
+
+  assert.equal(verifyForExport({ ...unconfirmed, classification: "P0", allowedRoute: "cloud-approved" }).status, "verified");
+  assert.equal(verifyForExport({ ...unconfirmed, classification: "P0", allowedRoute: "cloud-sanitized" }).status, "verified");
+  assert.equal(verifyForExport({ ...unconfirmed, classification: "P0", allowedRoute: "local-only" }).status, "blocked");
+  assert.equal(verifyForExport({ ...unconfirmed, classification: "P1", allowedRoute: "cloud-approved" }).status, "blocked");
+  assert.equal(verifyForExport({ ...unconfirmed, classification: "P1", allowedRoute: "cloud-sanitized" }).status, "verified");
+  assert.equal(verifyForExport({ ...confirmed, classification: "P2", allowedRoute: "cloud-approved" }).status, "blocked");
+  assert.equal(verifyForExport({ ...confirmed, classification: "P2", allowedRoute: "cloud-sanitized" }).status, "verified");
+  assert.equal(verifyForExport({ ...unconfirmed, classification: "P3", allowedRoute: "local-only" }).status, "blocked");
+  assert.equal(verifyForExport({ ...unconfirmed, classification: "P3", allowedRoute: "cloud-sanitized" }).status, "blocked");
+});
+
 test("binds authentic transformations to their source text and rejects forged dictionary snapshots", () => {
   const directory = mkdtempSync(join(tmpdir(), "ew-verify-binding-"));
   const detection = dictionary([]);

@@ -9,7 +9,7 @@ Evidence for branch `codex/plaintext-hardening-v0.1`. All fixtures use synthetic
 | C1–C7 deterministic detection, random IDs and encrypted dictionary | `detection-transform.test.ts` current GitHub token shapes, private-key armor, quoted/unquoted credential and bank account, Taiwan ID/mobile variants, overlap and identity tests plus positive/negative fixtures | Pass for implemented plain-text detectors |
 | D1–D5a controlled transformation and residual risk | transformation injection/forced-delete tests plus verification high/medium keep tests | Pass for text derivatives |
 | E1–E8 authenticated canonical versioned vault and project token scope | dictionary/token registry unit tests and extra/duplicate/trailing-field tamper fixtures | Pass; JavaScript zeroization limitation documented |
-| F1–F5, F7–F14 verified export, schema/semantic validation, allowlist, ZIP inspection and hashes | `verification-package.test.ts` | Pass for the repository v0.1 schema and single/multiple plain-text item model |
+| F1–F5, F7–F15 verified export, complete P0–P3 route matrix, schema/semantic validation, allowlist, ZIP inspection and hashes | `verification-package.test.ts` | Pass for the repository v0.1 schema and single/multiple plain-text item model |
 | I5–I6 exclusive output and post-write identity | `verification-package.test.ts` write-conflict, cleanup and path-replacement tests | Pass for regular local files |
 | I7 dependency/build baseline | `npm run check:dependencies`, lockfile inspection and recorded full audit | Pass; future dependency changes still require maintenance and behavior review |
 | F6 cross-project Forge compatibility | No external schema or integration harness supplied | Pending integration; no compatibility claim |

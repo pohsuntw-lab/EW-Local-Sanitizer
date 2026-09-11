@@ -71,6 +71,7 @@ Version: 0.1.0 MVP
 - F12: Manifest finding-count maps accept only known finding types, severities and actions; their dimension totals agree, residual risk equals the keep count, and manifest source IDs are unique.
 - F13: P2 does not accept a caller-provided boolean; its confirmation capability is bound to the exact project, dictionary, source and derivative/report review state, and missing, forged or stale confirmation blocks export.
 - F14: Source identity, size and SHA-256 are rechecked through Safe Package completion. A source changed after verification blocks packaging and leaves no ZIP, checksum or receipt created by that call.
+- F15: Verification tests the complete MVP route matrix: P0 permits approved or sanitized cloud routes, P1/P2 permit only sanitized cloud routes, and P3 never receives an export capability even when its requested route is local-only.
 
 For v0.1, F6 means local validation against `schemas/ew-safe-package-manifest-v0.1.schema.json`. Validation by EW Enterprise Secure Knowledge Forge is pending integration and must not be claimed complete.
 
