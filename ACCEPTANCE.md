@@ -38,6 +38,7 @@ Version: 0.1.0 MVP
 - D2: Tokenize uses a stable project-scoped token without leaking the original.
 - D3: Generalize replaces exact values according to a recorded rule.
 - D4: Credentials and private keys cannot be kept or exported.
+- D4a: Transformation accepts only immutable detector-issued findings bound to the same text, policy and dictionary; finding retyping, cloning, cross-dictionary reuse and unrelated decisions fail closed.
 - D5: A high/critical local `keep` requires a controlled reason code and remains unresolved, permanently blocking cloud package creation. Free-form local detail is never packaged.
 - D5a: Low/medium `keep` records residual risk and never produces a completely-safe status.
 - D6: Image redactions are flattened into new pixels; recovering underlying text from layers is impossible.
@@ -60,7 +61,7 @@ Version: 0.1.0 MVP
 - F4: Original files, full paths, raw findings, local session data and token maps are absent.
 - F5: Package and derivative hashes verify successfully.
 - F6: This repository validates manifests locally against the versioned v0.1 schema; EW Enterprise Secure Knowledge Forge cross-project validation remains pending integration.
-- F7: Packaging accepts only a verified result; callers cannot bypass unresolved, coverage, source-integrity, policy or second-scan checks by supplying arbitrary derivative text.
+- F7: Packaging accepts only a verified result; callers cannot bypass unresolved, coverage, source-integrity, authentic-finding, policy or second-scan checks by supplying arbitrary findings or derivative text.
 - F8: ZIP post-write inspection rejects non-allowlisted, duplicate, traversal, hidden, noncanonical-header and oversized entries/packages; deterministic mutation fixtures fail closed for every single-byte change and truncation of a baseline archive.
 - F9: The package checksum is SHA-256 of the actual ZIP bytes and is stored in a sibling `.sha256` file and local receipt, not inside the ZIP.
 - F10: Token labels, controlled generalizations and public report fields are validated and scanned before export.

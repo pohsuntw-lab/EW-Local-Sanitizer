@@ -1,9 +1,11 @@
 import { createHash } from "node:crypto";
+import { areAuthenticFindingsFor } from "./detectors.js";
 import { isAuthenticDictionarySnapshot, type DictionarySnapshot } from "./dictionary.js";
 import {
   CONTROLLED_REASON_CODES,
   DEFAULT_TOKEN_LABELS,
   GENERALIZATION_RULES,
+  MAX_FINDINGS_PER_FILE,
   PLAIN_TEXT_POLICY_VERSION,
   isBlockingSeverity,
   validateTokenLabel,
@@ -21,9 +23,15 @@ export interface TransformContext {
 
 export function transformText(text: string, findings: Finding[], decisions: Decision[], context: TransformContext): TransformResult {
   if (!isAuthenticDictionarySnapshot(context.dictionary)) throw new Error("Untrusted dictionary snapshot");
+  if (findings.length > MAX_FINDINGS_PER_FILE) throw new Error("Finding limit exceeded; transformation coverage is incomplete");
+  if (!areAuthenticFindingsFor(findings, text, context.dictionary)) throw new Error("Untrusted or mismatched findings");
   validateFindingRanges(text, findings);
   const decisionMap = new Map(decisions.map((decision) => [decision.findingId, decision]));
   if (decisionMap.size !== decisions.length) throw new Error("Duplicate finding decision");
+  const findingIds = new Set(findings.map((finding) => finding.findingId));
+  if (decisions.length > findings.length || decisions.some((decision) => !findingIds.has(decision.findingId))) {
+    throw new Error("Decision does not reference a current finding");
+  }
   const unresolved: UnresolvedItem[] = [];
   const publicFindings: PublicFinding[] = [];
   const tokenEntries: TokenEntry[] = [];

@@ -1,7 +1,7 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { isAuthenticDictionarySnapshot, type DictionarySnapshot } from "./dictionary.js";
 import { normalizeSensitiveValue } from "./normalization.js";
-import { MAX_FINDINGS_PER_FILE } from "./policy.js";
+import { MAX_DETECTION_TEXT_BYTES, MAX_FINDINGS_PER_FILE, PLAIN_TEXT_POLICY_VERSION } from "./policy.js";
 import type { Finding, FindingType, Severity } from "./types.js";
 
 interface Detector {
@@ -30,19 +30,38 @@ export interface DetectionContext {
   dictionary: DictionarySnapshot;
 }
 
+interface FindingBinding { textHash: string; dictionaryVersion: string; dictionaryHash: string; policyVersion: string }
+const findingBindings = new WeakMap<Finding, FindingBinding>();
+
 export function detectText(text: string, context: DetectionContext): Finding[] {
   if (!isAuthenticDictionarySnapshot(context.dictionary)) throw new Error("Untrusted dictionary snapshot");
+  if (Buffer.byteLength(text, "utf8") > MAX_DETECTION_TEXT_BYTES) throw new Error("Detection input exceeds size policy; coverage is incomplete");
+  const binding = Object.freeze({
+    textHash: createHash("sha256").update(text, "utf8").digest("hex"),
+    dictionaryVersion: context.dictionary.dictionaryVersion,
+    dictionaryHash: context.dictionary.dictionaryHash,
+    policyVersion: PLAIN_TEXT_POLICY_VERSION,
+  });
   const findings: Finding[] = [];
   for (const detector of DETECTORS) {
     detector.pattern.lastIndex = 0;
     for (const match of text.matchAll(detector.pattern)) {
       if (match.index === undefined || !match[0] || (detector.validate && !detector.validate(match[0]))) continue;
       if (findings.length >= MAX_FINDINGS_PER_FILE) throw new Error("Finding limit exceeded; detection coverage is incomplete");
-      findings.push(makeFinding(detector.type, detector.severity, match.index, match.index + match[0].length, match[0], detector.name));
+      findings.push(makeFinding(detector.type, detector.severity, match.index, match.index + match[0].length, match[0], detector.name, binding));
     }
   }
-  findings.push(...detectDictionaryTerms(text, context.dictionary, MAX_FINDINGS_PER_FILE - findings.length));
+  findings.push(...detectDictionaryTerms(text, context.dictionary, MAX_FINDINGS_PER_FILE - findings.length, binding));
   return removeOverlaps(findings);
+}
+
+export function areAuthenticFindingsFor(findings: readonly Finding[], text: string, dictionary: DictionarySnapshot): boolean {
+  const textHash = createHash("sha256").update(text, "utf8").digest("hex");
+  return findings.every((finding) => {
+    const binding = findingBindings.get(finding);
+    return binding?.textHash === textHash && binding.dictionaryVersion === dictionary.dictionaryVersion &&
+      binding.dictionaryHash === dictionary.dictionaryHash && binding.policyVersion === PLAIN_TEXT_POLICY_VERSION;
+  });
 }
 
 export function maskValue(value: string): string {
@@ -50,7 +69,7 @@ export function maskValue(value: string): string {
   return `${value.slice(0, 2)}${"•".repeat(Math.min(8, value.length - 4))}${value.slice(-2)}`;
 }
 
-function detectDictionaryTerms(text: string, dictionary: DictionarySnapshot, remaining: number): Finding[] {
+function detectDictionaryTerms(text: string, dictionary: DictionarySnapshot, remaining: number, binding: FindingBinding): Finding[] {
   const findings: Finding[] = [];
   const indexed = buildNormalizedIndex(text, dictionary);
   const nodes = buildTermTrie(dictionary.normalizedTerms);
@@ -64,7 +83,9 @@ function detectDictionaryTerms(text: string, dictionary: DictionarySnapshot, rem
       const normalizedIndex = index - termLength + 1;
       const start = indexed.starts[normalizedIndex];
       const end = indexed.ends[index];
-      if (start !== undefined && end !== undefined) findings.push(makeFinding("exact-data", "high", start, end, text.slice(start, end), "local-exact-data"));
+      if (start !== undefined && end !== undefined) {
+        findings.push(makeFinding("exact-data", "high", start, end, text.slice(start, end), "local-exact-data", binding));
+      }
     }
   }
   return findings;
@@ -132,8 +153,10 @@ function buildNormalizedIndex(text: string, dictionary: DictionarySnapshot): { v
   return { value: values.join(""), starts, ends };
 }
 
-function makeFinding(type: FindingType, severity: Severity, start: number, end: number, value: string, detector: string): Finding {
-  return { findingId: randomUUID(), type, severity, start, end, value, maskedPreview: maskValue(value), detector };
+function makeFinding(type: FindingType, severity: Severity, start: number, end: number, value: string, detector: string, binding: FindingBinding): Finding {
+  const finding = Object.freeze({ findingId: randomUUID(), type, severity, start, end, value, maskedPreview: maskValue(value), detector });
+  findingBindings.set(finding, binding);
+  return finding;
 }
 
 function validTaiwanId(value: string): boolean {

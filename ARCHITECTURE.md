@@ -59,6 +59,8 @@ Combines:
 
 Every finding contains a session-random UUID `finding_id`, type, severity, source ID, logical location, detector, masked preview and confidence. IDs are not derived from sensitive values. Exported reports never contain the original value or free-form review reason.
 
+Detector-issued findings are immutable runtime capabilities bound to the source-text hash, policy version and dictionary version/hash. Transformation rejects cloned, modified, cross-text or cross-dictionary findings, as well as decisions that do not reference the current finding set.
+
 Project dictionaries are encrypted local artifacts. Matching normalizes Unicode with NFKC, trims and collapses whitespace, applies the configured Latin case rule and supports explicit aliases only. Fuzzy matching is disabled for the MVP. A dictionary snapshot version and hash bind both scans; only those identifiers enter the manifest.
 
 Exact-data matching uses a literal trie with failure links so scan cost is linear in normalized input plus reported matches. Versioned policy limits bound dictionary entries, aliases, normalized term volume and findings per file; exceeding a limit is incomplete coverage and fails closed.

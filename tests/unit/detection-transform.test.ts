@@ -6,7 +6,7 @@ import { detectText } from "../../src/core/detectors.js";
 import { ProjectTokenRegistry, decryptTokenMap, encryptTokenMap } from "../../src/core/token-vault.js";
 import { decryptLocalSession, encryptLocalSession } from "../../src/core/session-vault.js";
 import { transformText } from "../../src/core/transform.js";
-import type { ReasonCode } from "../../src/core/types.js";
+import type { Finding, ReasonCode } from "../../src/core/types.js";
 import { MAX_FINDINGS_PER_FILE, MAX_SESSION_FINDINGS, assertSessionFindingCount } from "../../src/core/policy.js";
 import { dictionary } from "../helpers.js";
 
@@ -124,6 +124,8 @@ test("optional local session persistence is authenticated and does not expose re
   assert.equal(encrypted.includes(Buffer.from("Synthetic local review detail")), false);
   assert.deepEqual(decryptLocalSession(encrypted, "correct horse battery staple"), session);
   assert.throws(() => decryptLocalSession(encrypted, "wrong passphrase value"));
+  assert.throws(() => encryptLocalSession({ ...session, sourceIds: [session.sourceIds[0]!, session.sourceIds[0]!] }, "correct horse battery staple"), /local session fields/);
+  assert.throws(() => encryptLocalSession({ ...session, decisions: [{ ...session.decisions[0]!, tokenLabel: "EMAIL" }] }, "correct horse battery staple"), /only valid for tokenization/);
 });
 
 test("forces secret deletion and rejects reason, token-label and generalization injection", () => {
@@ -133,6 +135,9 @@ test("forces secret deletion and rejects reason, token-label and generalization 
   const credential = detectText(credentialText, context)[0];
   assert.ok(credential);
   assert.throws(() => transformText(credentialText, [credential], [{ findingId: credential.findingId, action: "keep", reasonCode: "OPERATIONAL_CONTEXT" }], { dictionary: context.dictionary, tokenRegistry: registry }), /must be deleted/);
+  const forgedCredential = { ...credential, type: "email", severity: "high" } as Finding;
+  assert.throws(() => transformText(credentialText, [forgedCredential], [{ findingId: forgedCredential.findingId, action: "tokenize" }], { dictionary: context.dictionary, tokenRegistry: registry }), /Untrusted/);
+  assert.throws(() => { (credential as { type: string }).type = "email"; }, /read only|Cannot assign/);
 
   const emailText = "test.person@example.com";
   const email = detectText(emailText, context)[0];
@@ -141,4 +146,14 @@ test("forces secret deletion and rejects reason, token-label and generalization 
   assert.throws(() => transformText(emailText, [email], [{ findingId: email.findingId, action: "keep", reasonCode: "test.person@example.com" as ReasonCode }], { dictionary: context.dictionary, tokenRegistry: registry }), /reason code/);
   assert.throws(() => transformText(emailText, [email], [{ findingId: email.findingId, action: "generalize", generalizationRuleId: "test.person@example.com" }], { dictionary: context.dictionary, tokenRegistry: registry }), /approved rule/);
   assert.throws(() => transformText(emailText, [email], [{ findingId: email.findingId, action: "delete", reasonCode: "PUBLICLY_APPROVED" }], { dictionary: context.dictionary, tokenRegistry: registry }), /only valid for keep/);
+  assert.throws(() => transformText(emailText, [email], [
+    { findingId: email.findingId, action: "delete" },
+    { findingId: "00000000-0000-4000-8000-000000000099", action: "delete" },
+  ], { dictionary: context.dictionary, tokenRegistry: registry }), /current finding/);
+  const otherDictionary = dictionary([], false, "dict-2");
+  const otherRegistry = ProjectTokenRegistry.create("00000000-0000-4000-8000-000000000001", otherDictionary.dictionary);
+  assert.throws(() => transformText(emailText, [email], [{ findingId: email.findingId, action: "delete" }], {
+    dictionary: otherDictionary.dictionary,
+    tokenRegistry: otherRegistry,
+  }), /mismatched/);
 });

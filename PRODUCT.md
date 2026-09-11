@@ -54,6 +54,8 @@ The MVP does not promise preservation of the original Office or PDF layout. Know
 
 Detection uses deterministic rules, exact-data dictionaries and optional local-only assistance. AI classification is never the sole control.
 
+Only immutable findings issued by the detector for the same source text, policy and dictionary snapshot can enter transformation. Callers cannot retype or clone a credential finding to weaken its forced-delete rule.
+
 ## Transformations
 
 - `delete`: irreversibly remove content from the safe derivative.

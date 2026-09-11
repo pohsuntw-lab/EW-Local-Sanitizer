@@ -18,14 +18,14 @@ export type CoverageStatus = "complete" | "incomplete" | "unknown";
 export type ReasonCode = "PUBLICLY_APPROVED" | "OPERATIONAL_CONTEXT" | "LOW_SENSITIVITY_ACCEPTED";
 
 export interface Finding {
-  findingId: string;
-  type: FindingType;
-  severity: Severity;
-  start: number;
-  end: number;
-  value: string;
-  maskedPreview: string;
-  detector: string;
+  readonly findingId: string;
+  readonly type: FindingType;
+  readonly severity: Severity;
+  readonly start: number;
+  readonly end: number;
+  readonly value: string;
+  readonly maskedPreview: string;
+  readonly detector: string;
 }
 
 export interface PublicFinding {
