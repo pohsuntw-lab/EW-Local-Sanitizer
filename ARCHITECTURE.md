@@ -69,7 +69,7 @@ Exact-data matching uses a literal trie with failure links so scan cost is linea
 
 Suggests P0-P3 but requires a user decision. Hard rules:
 
-- credential, password, API-token and private-key findings are critical and must be deleted; credential assignment detection covers controlled unquoted and single-line single/double-quoted key/value forms;
+- credential, password, API-token and private-key findings are critical and must be deleted; credential assignment detection covers controlled unquoted and single-line single/double-quoted key/value forms, while private-key armor requires matching BEGIN/END labels;
 - P3 structural knowledge is local-only;
 - unknown parser coverage or unresolved critical/high findings blocks export;
 - `keep` on high/critical risk is permitted only as a local review decision with a controlled reason code and remains unresolved for cloud export;

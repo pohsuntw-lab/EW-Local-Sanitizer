@@ -13,7 +13,12 @@ interface Detector {
 }
 
 const DETECTORS: readonly Detector[] = [
-  { name: "private-key-block", type: "private-key", severity: "critical", pattern: /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/g },
+  {
+    name: "private-key-block",
+    type: "private-key",
+    severity: "critical",
+    pattern: /-----BEGIN ((?:(?:RSA|EC|DSA|OPENSSH|ENCRYPTED) )?PRIVATE KEY|PGP PRIVATE KEY BLOCK)-----[\s\S]*?-----END \1-----/g,
+  },
   { name: "openai-style-token", type: "api-token", severity: "critical", pattern: /\bsk-[A-Za-z0-9_-]{20,}\b/g },
   { name: "github-token", type: "api-token", severity: "critical", pattern: /\bgh[pousr]_[A-Za-z0-9]{20,}\b/g },
   {

@@ -34,6 +34,7 @@ Scope: phase 0 and phase 1 on `codex/plaintext-hardening-v0.1`. The review did n
 | Medium | Binary-control detection used a one-percent threshold, allowing a sparse C0/C1 control byte in otherwise valid Unicode text to pass intake. | Plain-text intake now rejects every C0/C1 control character except tab, carriage return and line feed; regression cases cover sparse C0 and C1 input. |
 | Medium | Manifest count maps were individually schema-valid even when their type/severity/action totals disagreed or residual risk differed from the keep count. | Local manifest semantics now require equal dimension totals and bind residual risk to the keep action count; inconsistent manifests fail validation. |
 | High | The credential assignment detector did not recognize quoted keys or quoted password/secret values containing spaces, allowing common JSON, configuration and shell-style forms to evade the forced-delete path. | The bounded single-line detector now recognizes unquoted and single/double-quoted assignment forms; synthetic tests require all variants to be critical credentials. |
+| High | Private-key detection omitted encrypted PKCS#8-style, DSA and PGP armor and allowed BEGIN/END labels of different types to form one match. | Supported private-key armor labels were expanded and bound with a regular-expression backreference; synthetic tests cover standard, encrypted, DSA and PGP blocks. |
 
 ## Residual risks and release gates
 

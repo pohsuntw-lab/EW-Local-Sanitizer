@@ -56,6 +56,12 @@ test("classifies synthetic private keys, standalone tokens, passwords and connec
   const context = dictionary([]);
   const text = [
     "-----BEGIN PRIVATE KEY-----\nU1lOVEhFVElDLU5PVC1BLVktFWQ==\n-----END PRIVATE KEY-----",
+    "-----BEGIN RSA PRIVATE KEY-----\nU1lOVEhFVElDLVJTQQ==\n-----END RSA PRIVATE KEY-----",
+    "-----BEGIN EC PRIVATE KEY-----\nU1lOVEhFVElDLUVD\n-----END EC PRIVATE KEY-----",
+    "-----BEGIN OPENSSH PRIVATE KEY-----\nU1lOVEhFVElDLU9QRU5TU0g=\n-----END OPENSSH PRIVATE KEY-----",
+    "-----BEGIN ENCRYPTED PRIVATE KEY-----\nU1lOVEhFVElDLUVORVJZUFRFRA==\n-----END ENCRYPTED PRIVATE KEY-----",
+    "-----BEGIN DSA PRIVATE KEY-----\nU1lOVEhFVElDLURTQQ==\n-----END DSA PRIVATE KEY-----",
+    "-----BEGIN PGP PRIVATE KEY BLOCK-----\nU1lOVEhFVElDLVBHUA==\n-----END PGP PRIVATE KEY BLOCK-----",
     "sk-SYNTHETICOPENAITOKEN1234567890",
     "ghp_SYNTHETICGITHUBTOKEN1234567890",
     "password=synthetic-password-123",
@@ -64,10 +70,12 @@ test("classifies synthetic private keys, standalone tokens, passwords and connec
     "client_secret='synthetic secret phrase'",
   ].join("\n");
   const findings = detectText(text, context);
-  assert.ok(findings.some((finding) => finding.type === "private-key"));
+  assert.ok(findings.filter((finding) => finding.type === "private-key").length >= 7);
   assert.ok(findings.filter((finding) => finding.type === "api-token").length >= 2);
   assert.ok(findings.filter((finding) => finding.type === "credential").length >= 4);
   assert.equal(findings.every((finding) => finding.severity === "critical"), true);
+  const mismatchedArmor = "-----BEGIN RSA PRIVATE KEY-----\nU1lOVEhFVElD\n-----END EC PRIVATE KEY-----";
+  assert.equal(detectText(mismatchedArmor, context).some((finding) => finding.type === "private-key"), false);
 });
 
 test("encrypts dictionary and token registry with versioned authenticated headers", () => {
