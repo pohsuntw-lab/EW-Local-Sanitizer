@@ -5,8 +5,8 @@
 !include "LogicLib.nsh"
 
 !define EWLS_EULA_VERSION "EWLS-EULA-1.0"
-!define EWLS_EULA_HASH_zh_TW "ce60fadbf090ce12a7bc474cc9cf7b658eb063ed749d328652525f8096bfc235"
-!define EWLS_EULA_HASH_en_US "f47d79953ca95b215c63d35a956d3a288baf372362756de785ec9173b4b8b1b0"
+!define EWLS_EULA_HASH_zh_TW "2b41d85c64bea3118b46a010eb86e03d3d17a6838bd0cc5fc8dcb5b8fad03039"
+!define EWLS_EULA_HASH_en_US "3dfec7d5dc91cb53036ee521147003e4f91bcaa181f26c6256903f1701fb264a"
 !ifndef BUILD_UNINSTALLER
 Var EwlsEulaAccepted
 Var EwlsEulaLocale
@@ -79,11 +79,11 @@ Function EwlsSelectEula
   StrCmp $LANGUAGE 1033 EwlsSelectEnglish EwlsSelectTraditional
 EwlsSelectEnglish:
   StrCpy $EwlsEulaLocale "en-US"
-  StrCpy $EwlsEulaHash "f47d79953ca95b215c63d35a956d3a288baf372362756de785ec9173b4b8b1b0"
+  StrCpy $EwlsEulaHash "3dfec7d5dc91cb53036ee521147003e4f91bcaa181f26c6256903f1701fb264a"
   Goto EwlsSelectDone
 EwlsSelectTraditional:
   StrCpy $EwlsEulaLocale "zh-TW"
-  StrCpy $EwlsEulaHash "ce60fadbf090ce12a7bc474cc9cf7b658eb063ed749d328652525f8096bfc235"
+  StrCpy $EwlsEulaHash "2b41d85c64bea3118b46a010eb86e03d3d17a6838bd0cc5fc8dcb5b8fad03039"
 EwlsSelectDone:
 FunctionEnd
 

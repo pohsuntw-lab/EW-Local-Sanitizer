@@ -15,6 +15,8 @@ Published effective date: September 11, 2026
 Effective date for the current user: the software installation date  
 Rights holder: 具象職人股份有限公司 (Embodied Worker Co., Ltd.)
 
+Copyright © 2026 Embodied Worker Co., Ltd. All rights reserved.
+
 Please read this agreement carefully before installing, copying, or using the software.
 
 By actively selecting “I have read, understood, and agree” and pressing “Agree and Install,” you confirm that you have read and understood this agreement and agree to be bound by it. If you do not agree to any part of this agreement, do not install, copy, or use the software.

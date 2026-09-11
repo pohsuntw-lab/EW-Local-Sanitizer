@@ -92,6 +92,8 @@ test("Windows builder config cannot publish or silently sign", () => {
     const plainText = readFileSync(join(process.cwd(), agreement.plainTextPath), "utf8");
     assert.equal(agreement.sha256, createHash("sha256").update(source, "utf8").digest("hex"));
     assert.match(plainText, /具象職人股份有限公司|Embodied Worker Co\., Ltd\./);
+    assert.match(plainText, /Copyright © 2026/);
+    assert.match(plainText, /保留所有權利|All rights reserved/);
     assert.match(plainText, /第三方元件|Third-party and open-source components/);
     assert.match(plainText, /不保證完全偵測|does not guarantee perfect detection/);
   }
