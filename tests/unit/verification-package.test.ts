@@ -23,7 +23,7 @@ test("blocks export bypass, unresolved findings, high keep, P3 and missing P2 co
   const detection = dictionary([]);
   const source = writeSource(directory, "Contact test.person@example.com");
   const findings = detectText(source.text, detection);
-  const projectId = randomUUID();
+  const projectId = detection.dictionary.projectId;
   const registry = ProjectTokenRegistry.create(projectId, detection.dictionary);
   const missing = transformText(source.text, findings, [], { dictionary: detection.dictionary, tokenRegistry: registry });
   assert.equal(verifyForExport({ ...verificationRequest(source, missing, detection), projectId }).status, "blocked");
@@ -61,7 +61,7 @@ test("binds the same dictionary to second scan and blocks report-field injection
   const detection = dictionary(["[PRIVATE NETWORK]"]);
   const source = writeSource(directory, "Host 10.10.2.15");
   const findings = detectText(source.text, detection);
-  const registry = ProjectTokenRegistry.create(randomUUID(), detection.dictionary);
+  const registry = ProjectTokenRegistry.create(detection.dictionary.projectId, detection.dictionary);
   const transformation = transformText(source.text, findings, findings.map((finding) => ({
     findingId: finding.findingId,
     action: "generalize" as const,
@@ -87,7 +87,7 @@ test("blocks changed source hash and allows medium keep only with residual risk"
   writeFileSync(path, "host 10.10.2.15");
   const source = writeSource(directory, "host 10.10.2.15");
   const findings = detectText(source.text, detection);
-  const registry = ProjectTokenRegistry.create(randomUUID(), detection.dictionary);
+  const registry = ProjectTokenRegistry.create(detection.dictionary.projectId, detection.dictionary);
   const kept = transformText(source.text, findings, findings.map((finding) => ({ findingId: finding.findingId, action: "keep" as const, reasonCode: "LOW_SENSITIVITY_ACCEPTED" as const, localReasonDetail: "Synthetic local review detail" })), { dictionary: detection.dictionary, tokenRegistry: registry });
   const outcome = verifyForExport(verificationRequest(source, kept, detection));
   assert.equal(outcome.status, "verified");
@@ -106,7 +106,7 @@ test("writes allowlisted package, validates actual ZIP SHA-256 and excludes loca
   const detection = dictionary(["Example Foundry"]);
   const source = writeSource(directory, "Contact test.person@example.com for Example Foundry.");
   const findings = detectText(source.text, detection);
-  const registry = ProjectTokenRegistry.create(randomUUID(), detection.dictionary);
+  const registry = ProjectTokenRegistry.create(detection.dictionary.projectId, detection.dictionary);
   const transformed = transformText(source.text, findings, findings.map((finding) => ({ findingId: finding.findingId, action: "tokenize" as const })), { dictionary: detection.dictionary, tokenRegistry: registry });
   const missingTokenMap = verifyForExport({ ...verificationRequest(source, transformed, detection), tokenMapCreated: false });
   assert.equal(missingTokenMap.status, "blocked");

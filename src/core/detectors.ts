@@ -30,7 +30,7 @@ export interface DetectionContext {
   dictionary: DictionarySnapshot;
 }
 
-interface FindingBinding { textHash: string; dictionaryVersion: string; dictionaryHash: string; policyVersion: string }
+interface FindingBinding { textHash: string; projectId: string; dictionaryVersion: string; dictionaryHash: string; policyVersion: string }
 const findingBindings = new WeakMap<Finding, FindingBinding>();
 
 export function detectText(text: string, context: DetectionContext): Finding[] {
@@ -38,6 +38,7 @@ export function detectText(text: string, context: DetectionContext): Finding[] {
   if (Buffer.byteLength(text, "utf8") > MAX_DETECTION_TEXT_BYTES) throw new Error("Detection input exceeds size policy; coverage is incomplete");
   const binding = Object.freeze({
     textHash: createHash("sha256").update(text, "utf8").digest("hex"),
+    projectId: context.dictionary.projectId,
     dictionaryVersion: context.dictionary.dictionaryVersion,
     dictionaryHash: context.dictionary.dictionaryHash,
     policyVersion: PLAIN_TEXT_POLICY_VERSION,
@@ -59,7 +60,7 @@ export function areAuthenticFindingsFor(findings: readonly Finding[], text: stri
   const textHash = createHash("sha256").update(text, "utf8").digest("hex");
   return findings.every((finding) => {
     const binding = findingBindings.get(finding);
-    return binding?.textHash === textHash && binding.dictionaryVersion === dictionary.dictionaryVersion &&
+    return binding?.textHash === textHash && binding.projectId === dictionary.projectId && binding.dictionaryVersion === dictionary.dictionaryVersion &&
       binding.dictionaryHash === dictionary.dictionaryHash && binding.policyVersion === PLAIN_TEXT_POLICY_VERSION;
   });
 }

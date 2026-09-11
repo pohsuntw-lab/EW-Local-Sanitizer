@@ -100,6 +100,8 @@ When tokenization is used, export remains blocked until the session records that
 
 The encrypted project token registry gives the same normalized original the same token within one project. Different projects use independent random scope secrets so their identifiers cannot be correlated. The project-scoped exact-data dictionary is also encrypted locally; manifests contain only its version and hash.
 
+Each dictionary records its project UUID, and that UUID participates in the dictionary snapshot hash. A dictionary, token registry, finding set or transformation from another project cannot be substituted during verification.
+
 ## Plain-text v0.1 limits
 
 - TXT and Markdown only.

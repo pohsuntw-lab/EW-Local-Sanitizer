@@ -12,7 +12,7 @@ import { dictionary } from "../helpers.js";
 
 test("detects synthetic credentials, checksum-aware PII, commercial IDs and normalized dictionary aliases", () => {
   const projectDictionary: ProjectDictionary = {
-    formatVersion: "ewdict-1", dictionaryVersion: "v1", latinCaseSensitive: false,
+    formatVersion: "ewdict-1", projectId: "00000000-0000-4000-8000-000000000001", dictionaryVersion: "v1", latinCaseSensitive: false,
     entries: [{ canonical: "Example Foundry", aliases: ["Ｅｘａｍｐｌｅ   Plant"] }],
   };
   const context = { dictionary: createDictionarySnapshot(projectDictionary) };
@@ -38,7 +38,7 @@ test("NFKC grapheme normalization matches combining aliases and critical finding
 
 test("exact-data trie and detector budgets fail closed on abusive input", () => {
   const invalidDictionary: ProjectDictionary = {
-    formatVersion: "ewdict-1", dictionaryVersion: "v1", latinCaseSensitive: false,
+    formatVersion: "ewdict-1", projectId: "00000000-0000-4000-8000-000000000001", dictionaryVersion: "v1", latinCaseSensitive: false,
     entries: [{ canonical: "Synthetic Customer", aliases: Array.from({ length: 17 }, (_, index) => `Synthetic Alias ${index}`) }],
   };
   assert.throws(() => createDictionarySnapshot(invalidDictionary), /dictionary entry/);
@@ -70,13 +70,15 @@ test("classifies synthetic private keys, standalone tokens, passwords and connec
 
 test("encrypts dictionary and token registry with versioned authenticated headers", () => {
   const projectDictionary: ProjectDictionary = {
-    formatVersion: "ewdict-1", dictionaryVersion: "v1", latinCaseSensitive: false,
+    formatVersion: "ewdict-1", projectId: "00000000-0000-4000-8000-000000000001", dictionaryVersion: "v1", latinCaseSensitive: false,
     entries: [{ canonical: "Synthetic Customer", aliases: ["Synthetic Alias"] }],
   };
   const encryptedDictionary = encryptProjectDictionary(projectDictionary, "correct horse battery staple");
   assert.equal(encryptedDictionary.includes(Buffer.from("Synthetic Customer")), false);
   assert.deepEqual(decryptProjectDictionary(encryptedDictionary, "correct horse battery staple"), projectDictionary);
   assert.throws(() => decryptProjectDictionary(encryptedDictionary, "wrong passphrase value"));
+  const otherProjectDictionary = { ...projectDictionary, projectId: "00000000-0000-4000-8000-000000000002" };
+  assert.notEqual(createDictionarySnapshot(projectDictionary).dictionaryHash, createDictionarySnapshot(otherProjectDictionary).dictionaryHash);
 
   const registry = ProjectTokenRegistry.create("00000000-0000-4000-8000-000000000001", { latinCaseSensitive: false });
   const first = registry.tokenFor(" Example   Foundry ", "exact-data", "CUSTOMER");
@@ -130,7 +132,7 @@ test("optional local session persistence is authenticated and does not expose re
 
 test("forces secret deletion and rejects reason, token-label and generalization injection", () => {
   const context = dictionary([]);
-  const registry = ProjectTokenRegistry.create("00000000-0000-4000-8000-000000000001", context.dictionary);
+  const registry = ProjectTokenRegistry.create(context.dictionary.projectId, context.dictionary);
   const credentialText = "password=synthetic-password-123";
   const credential = detectText(credentialText, context)[0];
   assert.ok(credential);
@@ -151,9 +153,14 @@ test("forces secret deletion and rejects reason, token-label and generalization 
     { findingId: "00000000-0000-4000-8000-000000000099", action: "delete" },
   ], { dictionary: context.dictionary, tokenRegistry: registry }), /current finding/);
   const otherDictionary = dictionary([], false, "dict-2");
-  const otherRegistry = ProjectTokenRegistry.create("00000000-0000-4000-8000-000000000001", otherDictionary.dictionary);
+  const otherRegistry = ProjectTokenRegistry.create(otherDictionary.dictionary.projectId, otherDictionary.dictionary);
   assert.throws(() => transformText(emailText, [email], [{ findingId: email.findingId, action: "delete" }], {
     dictionary: otherDictionary.dictionary,
     tokenRegistry: otherRegistry,
   }), /mismatched/);
+  const wrongProjectRegistry = ProjectTokenRegistry.create(otherDictionary.dictionary.projectId, context.dictionary);
+  assert.throws(() => transformText(emailText, [email], [{ findingId: email.findingId, action: "delete" }], {
+    dictionary: context.dictionary,
+    tokenRegistry: wrongProjectRegistry,
+  }), /different projects/);
 });

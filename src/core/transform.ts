@@ -23,6 +23,7 @@ export interface TransformContext {
 
 export function transformText(text: string, findings: Finding[], decisions: Decision[], context: TransformContext): TransformResult {
   if (!isAuthenticDictionarySnapshot(context.dictionary)) throw new Error("Untrusted dictionary snapshot");
+  if (context.tokenRegistry.projectId() !== context.dictionary.projectId) throw new Error("Token registry and dictionary belong to different projects");
   if (findings.length > MAX_FINDINGS_PER_FILE) throw new Error("Finding limit exceeded; transformation coverage is incomplete");
   if (!areAuthenticFindingsFor(findings, text, context.dictionary)) throw new Error("Untrusted or mismatched findings");
   validateFindingRanges(text, findings);

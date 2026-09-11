@@ -16,6 +16,7 @@ export interface DictionaryEntry {
 
 export interface ProjectDictionary {
   formatVersion: "ewdict-1";
+  projectId: string;
   dictionaryVersion: string;
   latinCaseSensitive: boolean;
   entries: DictionaryEntry[];
@@ -23,6 +24,7 @@ export interface ProjectDictionary {
 
 export interface DictionarySnapshot extends NormalizationPolicy {
   formatVersion: "ewdict-1";
+  projectId: string;
   dictionaryVersion: string;
   dictionaryHash: string;
   normalizedTerms: readonly string[];
@@ -41,12 +43,14 @@ export function createDictionarySnapshot(dictionary: ProjectDictionary): Diction
   }
   const canonical = JSON.stringify({
     formatVersion: dictionary.formatVersion,
+    projectId: dictionary.projectId,
     dictionaryVersion: dictionary.dictionaryVersion,
     latinCaseSensitive: dictionary.latinCaseSensitive,
     normalizedTerms,
   });
   const snapshot = Object.freeze({
     formatVersion: "ewdict-1",
+    projectId: dictionary.projectId,
     dictionaryVersion: dictionary.dictionaryVersion,
     dictionaryHash: createHash("sha256").update(canonical).digest("hex"),
     latinCaseSensitive: dictionary.latinCaseSensitive,
@@ -72,7 +76,7 @@ export function decryptProjectDictionary(payload: Buffer, passphrase: string): P
 }
 
 function validateDictionary(dictionary: ProjectDictionary): void {
-  if (dictionary.formatVersion !== "ewdict-1" || !/^[A-Za-z0-9._-]{1,64}$/.test(dictionary.dictionaryVersion)) {
+  if (dictionary.formatVersion !== "ewdict-1" || !isUuid(dictionary.projectId) || !/^[A-Za-z0-9._-]{1,64}$/.test(dictionary.dictionaryVersion)) {
     throw new Error("Invalid dictionary header");
   }
   if (typeof dictionary.latinCaseSensitive !== "boolean" || !Array.isArray(dictionary.entries) || dictionary.entries.length > MAX_DICTIONARY_ENTRIES) {
@@ -90,4 +94,8 @@ function validateDictionary(dictionary: ProjectDictionary): void {
     termCount += 1 + entry.aliases.length;
     if (termCount > MAX_DICTIONARY_TERMS) throw new Error("Dictionary exceeds term count policy limit");
   }
+}
+
+function isUuid(value: string): boolean {
+  return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }

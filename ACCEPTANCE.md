@@ -30,7 +30,7 @@ Version: 0.1.0 MVP
 - C4: Reports show masked previews only; raw sensitive values do not appear in exported JSON.
 - C5: No-finding output states that absence of detection is not proof of safety.
 - C6: Finding IDs are random/session-scoped and are not derived from sensitive values.
-- C7: Project exact-data dictionaries are encrypted locally; both scans use the same version/hash and normalization snapshot, and manifests expose no dictionary value.
+- C7: Project exact-data dictionaries are encrypted locally and bound to a project UUID; both scans use the same project/version/hash and normalization snapshot, cross-project substitution fails, and manifests expose no dictionary value.
 
 ## D. Transformation
 

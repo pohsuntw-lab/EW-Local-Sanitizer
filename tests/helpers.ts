@@ -8,9 +8,9 @@ import { ProjectTokenRegistry } from "../src/core/token-vault.js";
 import { transformText } from "../src/core/transform.js";
 import type { Action, Decision, Finding, TransformResult } from "../src/core/types.js";
 
-export function dictionary(terms: string[] = [], latinCaseSensitive = false, version = "dict-1"): DetectionContext {
+export function dictionary(terms: string[] = [], latinCaseSensitive = false, version = "dict-1", projectId = randomUUID()): DetectionContext {
   const projectDictionary: ProjectDictionary = {
-    formatVersion: "ewdict-1",
+    formatVersion: "ewdict-1", projectId,
     dictionaryVersion: version,
     latinCaseSensitive,
     entries: terms.map((term) => ({ canonical: term, aliases: [] })),
@@ -28,7 +28,7 @@ export function transformAll(
   source: PlainTextSource,
   detection: DetectionContext,
   action: Action = "delete",
-  projectId = randomUUID(),
+  projectId = detection.dictionary.projectId,
 ): { findings: Finding[]; transformation: TransformResult; registry: ProjectTokenRegistry } {
   const findings = detectText(source.text, detection);
   const registry = ProjectTokenRegistry.create(projectId, detection.dictionary);

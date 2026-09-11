@@ -26,6 +26,7 @@ Scope: phase 0 and phase 1 on `codex/plaintext-hardening-v0.1`. The review did n
 | High | Verification relied on TypeScript types for runtime classification, route, booleans and item uniqueness; invalid classification values could reach a nominal verified state before manifest validation rejected packaging. | Verification now validates runtime discriminants and booleans up front, rejects duplicate source IDs and blocks tokenized sessions without recorded token-map creation. |
 | Medium | Arbitrary package basenames could inject control characters into the sibling checksum line and receipt filename metadata. | Package basenames now require a length-bounded controlled ASCII pattern before any artifact is written. |
 | Medium | Manifest count maps accepted arbitrary property names and semantic validation did not reject duplicate source IDs. | The v0.1 schema now enumerates type/severity/action count keys with bounded counts and semantic validation enforces unique source IDs. |
+| High | Encrypted dictionaries were described as project-scoped but did not carry a project identifier, so identical dictionaries produced identical hashes and could be substituted across projects. | Dictionary format and snapshot now bind the project UUID into the hash; findings, registries, transformations and verification must all agree on that project. Tests prove equal terms hash differently across projects and mismatched registries fail closed. |
 
 ## Residual risks and release gates
 
@@ -33,6 +34,6 @@ Scope: phase 0 and phase 1 on `codex/plaintext-hardening-v0.1`. The review did n
 - JavaScript strings, caller-owned values and runtime copies cannot be guaranteed to be zeroized. Owned buffers are cleared where possible.
 - The custom stored-ZIP implementation has focused negative/tamper tests but has not yet undergone fuzzing or third-party audit.
 - Derivatives and ZIP bytes are still assembled in memory, but are now bounded by 100 MiB session input and 128 MiB package limits. Streaming remains recommended before broad deployment.
-- Dictionary SHA-256 values can reveal equality and may permit offline guessing of very low-entropy dictionaries; manifests contain no dictionary text, but a future project-keyed commitment should be considered.
+- Dictionary SHA-256 values no longer reveal equality across project UUIDs, but may still permit offline guessing of very low-entropy dictionaries when the project ID is known; manifests contain no dictionary text, and a future secret project-keyed commitment should be considered.
 - Network-denied evidence currently covers static source policy and denied JavaScript network entry points. OS-level denial on supported Windows systems remains pending.
 - Windows filesystem behavior, installer/runtime behavior, Authenticode and cross-project Forge validation remain pending acceptance gates.

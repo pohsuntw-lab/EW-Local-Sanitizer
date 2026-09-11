@@ -79,6 +79,7 @@ export function verifyForExport(request: VerificationRequest): VerificationOutco
   const unresolved: UnresolvedItem[] = [];
   if (!isUuid(request.projectId)) throw new Error("Project ID must be a UUID");
   if (!isAuthenticDictionarySnapshot(request.detection.dictionary)) throw new Error("Untrusted dictionary snapshot");
+  if (request.detection.dictionary.projectId !== request.projectId) unresolved.push({ code: "SECOND_SCAN_FAILED" });
   if (request.classification === "P3") unresolved.push({ code: "P3_LOCAL_ONLY" });
   else if (request.allowedRoute === "local-only" || !routeAllowed(request.classification, request.allowedRoute)) unresolved.push({ code: "ROUTE_NOT_ALLOWED" });
   if (request.classification === "P2" && !request.humanConfirmed) unresolved.push({ code: "HUMAN_CONFIRMATION_REQUIRED" });

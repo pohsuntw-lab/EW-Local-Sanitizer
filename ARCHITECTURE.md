@@ -61,7 +61,7 @@ Every finding contains a session-random UUID `finding_id`, type, severity, sourc
 
 Detector-issued findings are immutable runtime capabilities bound to the source-text hash, policy version and dictionary version/hash. Transformation rejects cloned, modified, cross-text or cross-dictionary findings, as well as decisions that do not reference the current finding set.
 
-Project dictionaries are encrypted local artifacts. Matching normalizes Unicode with NFKC, trims and collapses whitespace, applies the configured Latin case rule and supports explicit aliases only. Fuzzy matching is disabled for the MVP. A dictionary snapshot version and hash bind both scans; only those identifiers enter the manifest.
+Project dictionaries are encrypted local artifacts and carry a project UUID that participates in their snapshot hash. Matching normalizes Unicode with NFKC, trims and collapses whitespace, applies the configured Latin case rule and supports explicit aliases only. Fuzzy matching is disabled for the MVP. Project UUID, dictionary version and hash bind the dictionary, findings, token registry, transformations and both scans; only the manifest's existing project ID plus dictionary version/hash are exported.
 
 Exact-data matching uses a literal trie with failure links so scan cost is linear in normalized input plus reported matches. Versioned policy limits bound dictionary entries, aliases, normalized term volume and findings per file; exceeding a limit is incomplete coverage and fails closed.
 
