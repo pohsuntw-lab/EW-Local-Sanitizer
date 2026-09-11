@@ -41,13 +41,15 @@ The application must contain no HTTP client path used by the scanning workflow. 
 
 - Plain text adapter for TXT/Markdown.
 - Strict cell-aware CSV/TSV adapter with fixed delimiters, bounded rows/columns/cells, quoted-field mapping back to source offsets and fail-closed malformed-row handling.
-- OOXML adapters for DOCX/XLSX/PPTX.
+- Local OOXML package gate and DOCX/XLSX/PPTX adapters. ZIP central/local headers, entry identities, compression, paths and expanded sizes are validated before XML parsing; DTD/entity declarations are rejected.
 - PDF adapter for text, page structure and risk indicators.
 - Image adapter for EXIF inspection, OCR and bounding boxes.
 
 Parser failure is fail-closed: the file cannot be labelled safe.
 
 The tabular adapter preserves CSV/TSV syntax in the derivative and scans decoded cells independently. It maps finding ranges back to the immutable source representation before transformation. Formula-like cells require a controlled apostrophe-prefix transformation; this changes the derivative intentionally so spreadsheet software treats the value as literal text.
+
+Office adapters generate a canonical semantic representation in memory and bind every finding set to an `office` scan profile. DOCX extracts body, tables, headers, footers and supported notes; XLSX resolves workbook relationships, shared strings, visible cells, hidden rows/columns/sheets, formulas and comments; PPTX resolves ordered slides, hidden slides, notes and comments. Non-visible content, formulas, external relationships and metadata indicators are forced-delete findings. XLSX emits a generic Markdown index and CSV files only for explicitly approved visible worksheets. Unsupported embedded structures set coverage to incomplete and prevent export.
 
 ### 3. Detection engine
 
@@ -132,7 +134,7 @@ JavaScript strings, values retained by callers and runtime-managed copies cannot
 
 Because an archive cannot contain its own final hash, the manifest records the package hash method (`sha256`) while the final value is stored in the sibling checksum and local receipt. Cross-project validation by EW Enterprise Secure Knowledge Forge is pending integration; the MVP validates `schemas/ew-safe-package-manifest-v0.1.schema.json` locally.
 
-Local semantic validation supplements JSON Schema by requiring type, severity and action finding-count totals to agree, residual risk to equal the keep count, unique source IDs, consistent route/second-scan bindings and an allowlist exactly derived from the source entries.
+Local semantic validation supplements JSON Schema by requiring type, severity and action finding-count totals to agree, residual risk to equal the keep count, unique source IDs, source/derivative-format consistency, consistent route/second-scan bindings and an allowlist exactly derived from every source derivative entry.
 
 ## Text/tabular core boundaries
 
@@ -140,7 +142,7 @@ Parsing, detection, policy, transformation, verification and packaging are separ
 
 The core can prove that a P2 confirmation was issued for an exact review-state hash, but without the later UI/IPC layer it cannot prove that the issuing call originated from a physical user gesture. The future narrow IPC handler must invoke confirmation only from the explicit review action.
 
-The manifest records each source format and binds it to an allowlisted `.md`, `.csv` or `.tsv` derivative path. Verification reparses CSV/TSV derivatives and repeats cell-aware detection with the same policy and dictionary snapshot; malformed transformed structure or a remaining formula prefix fails closed.
+The manifest records each source format and binds it to one or more allowlisted `.md`, `.csv` or `.tsv` derivative paths. Verification reparses CSV/TSV derivatives and repeats format-aware detection with the same policy and dictionary snapshot; malformed transformed structure, a mismatched scan profile or a remaining formula prefix fails closed.
 
 ## Logging
 

@@ -24,10 +24,9 @@ After approval, implement in vertical slices:
 1. plain text intake, detection, decisions, second scan and safe export;
 2. encrypted token vault;
 3. CSV/TSV;
-4. DOCX/XLSX/PPTX;
+4. DOCX/XLSX/PPTX with bounded OOXML ZIP/XML parsing and format-aware second scan;
 5. PDF and image OCR;
 6. Electron UI;
 7. Windows installer and portable packaging.
 
 Use only synthetic fixtures. Do not add cloud calls or weaken a block to make a test pass. Maintain `PROJECT_STATUS.md` with evidence and the earliest incomplete lifecycle stage.
-

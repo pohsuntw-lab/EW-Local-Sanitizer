@@ -1,7 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
 import { closeSync, constants, fstatSync, lstatSync, openSync, readFileSync } from "node:fs";
 import { extname } from "node:path";
-import { MAX_PLAIN_TEXT_BYTES, MAX_SESSION_FILES, MAX_SESSION_TOTAL_BYTES, PLAIN_TEXT_POLICY_VERSION } from "./policy.js";
+import { MAX_OFFICE_BYTES, MAX_PLAIN_TEXT_BYTES, MAX_SESSION_FILES, MAX_SESSION_TOTAL_BYTES, PLAIN_TEXT_POLICY_VERSION } from "./policy.js";
+import { extractOfficeDocument, type OfficeIntakeOptions, type OfficeParseState } from "./office.js";
 import { parseTabularText, type TabularDocument } from "./tabular.js";
 import type { CoverageStatus } from "./types.js";
 
@@ -10,9 +11,9 @@ export interface PlainTextSource {
   readonly text: string;
   readonly originalHash: string;
   readonly size: number;
-  readonly format: "txt" | "markdown" | "csv" | "tsv";
+  readonly format: "txt" | "markdown" | "csv" | "tsv" | "docx" | "xlsx" | "pptx";
   readonly derivativeExtension: "md" | "csv" | "tsv";
-  readonly encoding: "utf-8" | "utf-16le" | "utf-16be";
+  readonly encoding: "utf-8" | "utf-16le" | "utf-16be" | "binary-ooxml";
   readonly coverage: CoverageStatus;
   readonly policyVersion: string;
 }
@@ -20,6 +21,7 @@ export interface PlainTextSource {
 const sourcePaths = new WeakMap<object, string>();
 const authenticSources = new WeakSet<object>();
 const tabularDocuments = new WeakMap<object, TabularDocument>();
+const officeStates = new WeakMap<object, OfficeParseState>();
 declare const sourceIntegrityProbeBrand: unique symbol;
 export interface SourceIntegrityProbe { readonly [sourceIntegrityProbeBrand]: true }
 const sourceIntegrityProbeStates = new WeakMap<object, { path: string; hash: string; size: number }>();
@@ -32,24 +34,29 @@ export function intakeTabular(path: string): PlainTextSource {
   return intakeSupportedText(path, "tabular");
 }
 
+export function intakeOffice(path: string, options: OfficeIntakeOptions = {}): PlainTextSource {
+  const extension = extname(path).toLowerCase();
+  if (!new Set([".docx", ".xlsx", ".pptx"]).has(extension)) throw new Error("Unsupported Office extension");
+  const bytes = readSourceBytes(path, MAX_OFFICE_BYTES);
+  const format = extension.slice(1) as "docx" | "xlsx" | "pptx";
+  const extracted = extractOfficeDocument(bytes, format, options);
+  const source = Object.freeze({
+    sourceId: randomUUID(), text: extracted.text, originalHash: sha256(bytes), size: bytes.length,
+    format, derivativeExtension: "md" as const, encoding: "binary-ooxml" as const, coverage: extracted.coverage,
+    policyVersion: PLAIN_TEXT_POLICY_VERSION,
+  } satisfies PlainTextSource);
+  sourcePaths.set(source, path);
+  authenticSources.add(source);
+  officeStates.set(source, extracted.state);
+  return source;
+}
+
 function intakeSupportedText(path: string, kind: "plain" | "tabular"): PlainTextSource {
-  const metadata = lstatSync(path);
-  if (!metadata.isFile() || metadata.isSymbolicLink()) throw new Error("Source must be a regular non-symbolic file");
-  if (metadata.size > MAX_PLAIN_TEXT_BYTES) throw new Error("Plain-text source exceeds 10 MiB policy limit");
   const extension = extname(path).toLowerCase();
   const allowed = kind === "plain" ? new Set([".txt", ".md", ".markdown"]) : new Set([".csv", ".tsv"]);
   if (!allowed.has(extension)) throw new Error(`Unsupported ${kind === "plain" ? "plain-text" : "tabular"} extension`);
 
-  const descriptor = openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
-  let bytes: Buffer;
-  try {
-    const opened = fstatSync(descriptor);
-    if (!opened.isFile() || opened.size !== metadata.size) throw new Error("Source changed during intake");
-    bytes = readFileSync(descriptor);
-    if (bytes.length !== opened.size || bytes.length > MAX_PLAIN_TEXT_BYTES) throw new Error("Source changed during intake");
-  } finally {
-    closeSync(descriptor);
-  }
+  const bytes = readSourceBytes(path, MAX_PLAIN_TEXT_BYTES);
   rejectKnownBinary(bytes);
   const decoded = decodeSupportedUnicode(bytes);
   if (containsBinaryControls(decoded.text)) throw new Error("Binary content cannot masquerade as plain text");
@@ -75,6 +82,8 @@ function intakeSupportedText(path: string, kind: "plain" | "tabular"): PlainText
 export function tabularDocumentFor(source: PlainTextSource): TabularDocument | undefined {
   return tabularDocuments.get(source);
 }
+
+export function officeStateFor(source: PlainTextSource): OfficeParseState | undefined { return officeStates.get(source); }
 
 export function assertSessionFileCount(count: number): void {
   if (!Number.isInteger(count) || count < 1 || count > MAX_SESSION_FILES) throw new Error("Session must contain between 1 and 100 files");
@@ -115,7 +124,7 @@ function pathHashStillMatches(path: string, expectedHash: string, expectedSize: 
   try {
     descriptor = openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
     const opened = fstatSync(descriptor);
-    if (!opened.isFile() || opened.size !== expectedSize || opened.size > MAX_PLAIN_TEXT_BYTES) return false;
+    if (!opened.isFile() || opened.size !== expectedSize) return false;
     const bytes = readFileSync(descriptor);
     return bytes.length === expectedSize && sha256(bytes) === expectedHash;
   } catch {
@@ -129,7 +138,7 @@ export function isAuthenticSource(source: PlainTextSource): boolean {
   return authenticSources.has(source);
 }
 
-function decodeSupportedUnicode(bytes: Buffer): { text: string; encoding: PlainTextSource["encoding"] } {
+function decodeSupportedUnicode(bytes: Buffer): { text: string; encoding: "utf-8" | "utf-16le" | "utf-16be" } {
   try {
     if (bytes.subarray(0, 2).equals(Buffer.from([0xff, 0xfe]))) {
       return { text: new TextDecoder("utf-16le", { fatal: true }).decode(bytes.subarray(2)), encoding: "utf-16le" };
@@ -165,4 +174,22 @@ function containsBinaryControls(text: string): boolean {
 
 function sha256(value: Buffer): string {
   return createHash("sha256").update(value).digest("hex");
+}
+
+function readSourceBytes(path: string, maximumBytes: number): Buffer {
+  const metadata = lstatSync(path);
+  if (!metadata.isFile() || metadata.isSymbolicLink()) throw new Error("Source must be a regular non-symbolic file");
+  if (metadata.size > maximumBytes) {
+    throw new Error(maximumBytes === MAX_PLAIN_TEXT_BYTES ? "Plain-text source exceeds 10 MiB policy limit" : "Office source exceeds 25 MiB policy limit");
+  }
+  const descriptor = openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+  try {
+    const opened = fstatSync(descriptor);
+    if (!opened.isFile() || opened.size !== metadata.size) throw new Error("Source changed during intake");
+    const bytes = readFileSync(descriptor);
+    if (bytes.length !== opened.size || bytes.length > maximumBytes) throw new Error("Source changed during intake");
+    return bytes;
+  } finally {
+    closeSync(descriptor);
+  }
 }

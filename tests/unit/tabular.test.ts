@@ -64,19 +64,17 @@ test("formula-looking cells cannot be kept, deleted or generalized with another 
   const directory = mkdtempSync(join(tmpdir(), "ew-csv-formula-policy-"));
   const source = writeTabularSource(directory, "value\n+COMMAND\n", "input.csv");
   const detection = dictionary([]);
-  const finding = detectSource(source, detection)[0]!;
+  const findings = detectSource(source, detection);
+  const finding = findings[0]!;
   const registry = ProjectTokenRegistry.create(detection.dictionary.projectId, detection.dictionary);
   for (const decision of [
     { findingId: finding.findingId, action: "keep" as const, reasonCode: "LOW_SENSITIVITY_ACCEPTED" as const },
     { findingId: finding.findingId, action: "delete" as const },
     { findingId: finding.findingId, action: "generalize" as const, generalizationRuleId: "CONTACT_REDACTED" },
   ]) {
-    assert.throws(() => transformText(source.text, [finding], [decision], { dictionary: detection.dictionary, tokenRegistry: registry }), /formula prefixes/);
+    assert.throws(() => transformText(source.text, findings, [decision], { dictionary: detection.dictionary, tokenRegistry: registry }), /formula prefixes/);
   }
-  const omitted = transformText(source.text, [], [], { dictionary: detection.dictionary, tokenRegistry: registry });
-  const bypass = verifyForExport(verificationRequest(source, omitted, detection));
-  assert.equal(bypass.status, "blocked");
-  if (bypass.status === "blocked") assert.ok(bypass.unresolved.some((item) => item.code === "SECOND_SCAN_BLOCKING_FINDING"));
+  assert.throws(() => transformText(source.text, [], [], { dictionary: detection.dictionary, tokenRegistry: registry }), /Untrusted or mismatched findings/);
 });
 
 test("tabular intake fails closed on malformed structure, inconsistent rows, binary and invalid encoding", () => {
@@ -103,7 +101,8 @@ test("CSV source mutation after verification blocks packaging and leaves no arti
   const source = writeTabularSource(directory, "name,value\nSynthetic,public\n", "input.csv");
   const detection = dictionary([]);
   const registry = ProjectTokenRegistry.create(detection.dictionary.projectId, detection.dictionary);
-  const transformation = transformText(source.text, [], [], { dictionary: detection.dictionary, tokenRegistry: registry });
+  const findings = detectSource(source, detection);
+  const transformation = transformText(source.text, findings, [], { dictionary: detection.dictionary, tokenRegistry: registry });
   const outcome = verifyForExport(verificationRequest(source, transformation, detection));
   assert.equal(outcome.status, "verified");
   if (outcome.status !== "verified") return;

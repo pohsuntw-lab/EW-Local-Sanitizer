@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { areAuthenticFindingsFor } from "./detectors.js";
+import { areAuthenticFindingsFor, authenticFindingSetProfile } from "./detectors.js";
 import { isAuthenticDictionarySnapshot, type DictionarySnapshot } from "./dictionary.js";
 import {
   CONTROLLED_REASON_CODES,
@@ -13,7 +13,9 @@ import {
 import type { ProjectTokenRegistry } from "./token-vault.js";
 import type { Decision, Finding, PublicFinding, TokenEntry, TransformResult, UnresolvedItem } from "./types.js";
 
-const FORCED_DELETE = new Set(["private-key", "api-token", "credential"]);
+const FORCED_DELETE = new Set([
+  "private-key", "api-token", "credential", "office-hidden-content", "office-formula", "office-external-link", "office-metadata",
+]);
 const authenticTransformations = new WeakSet<TransformResult>();
 
 export interface TransformContext {
@@ -86,6 +88,7 @@ export function transformText(text: string, findings: Finding[], decisions: Deci
     policyVersion: PLAIN_TEXT_POLICY_VERSION,
     dictionaryVersion: context.dictionary.dictionaryVersion,
     dictionaryHash: context.dictionary.dictionaryHash,
+    scanProfile: authenticFindingSetProfile(findings)!,
   });
   authenticTransformations.add(result);
   return result;

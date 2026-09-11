@@ -1,13 +1,18 @@
 import type { AllowedRoute, Classification, FindingType, ReasonCode, Severity } from "./types.js";
 
-export const CONTENT_POLICY_VERSION = "ew-content-policy-0.2";
+export const CONTENT_POLICY_VERSION = "ew-content-policy-0.3";
 export const PLAIN_TEXT_POLICY_VERSION = CONTENT_POLICY_VERSION;
 export const MAX_PLAIN_TEXT_BYTES = 10 * 1024 * 1024;
+export const MAX_OFFICE_BYTES = 25 * 1024 * 1024;
+export const MAX_OOXML_ENTRIES = 2_048;
+export const MAX_OOXML_ENTRY_BYTES = 16 * 1024 * 1024;
+export const MAX_OOXML_EXPANDED_BYTES = 64 * 1024 * 1024;
 export const MAX_SESSION_FILES = 100;
 export const MAX_SESSION_TOTAL_BYTES = 100 * 1024 * 1024;
 export const MAX_ZIP_ENTRY_BYTES = 16 * 1024 * 1024;
 export const MAX_SAFE_PACKAGE_BYTES = 128 * 1024 * 1024;
 export const MAX_SAFE_PACKAGE_ENTRIES = MAX_SESSION_FILES + 3;
+export const MAX_SAFE_DERIVATIVE_FILES = 100;
 export const MAX_DETECTION_TEXT_BYTES = MAX_ZIP_ENTRY_BYTES;
 export const MAX_FINDINGS_PER_FILE = 10_000;
 export const MAX_SESSION_FINDINGS = 50_000;
@@ -40,6 +45,10 @@ export const DEFAULT_TOKEN_LABELS: Readonly<Record<FindingType, string>> = {
   "contract-id": "CONTRACT",
   "exact-data": "ENTITY",
   "spreadsheet-formula": "FORMULA",
+  "office-hidden-content": "OFFICE_CONTENT",
+  "office-formula": "FORMULA",
+  "office-external-link": "EXTERNAL_LINK",
+  "office-metadata": "METADATA",
 };
 
 export const ALLOWED_TOKEN_LABELS = new Set([

@@ -40,7 +40,8 @@ test("tabular malformed and post-verification tamper fixtures fail closed", () =
   const source = intakeTabular(path);
   const detection = dictionary([]);
   const registry = ProjectTokenRegistry.create(detection.dictionary.projectId, detection.dictionary);
-  const transformation = transformText(source.text, [], [], { dictionary: detection.dictionary, tokenRegistry: registry });
+  const findings = detectSource(source, detection);
+  const transformation = transformText(source.text, findings, [], { dictionary: detection.dictionary, tokenRegistry: registry });
   const outcome = verifyForExport(verificationRequest(source, transformation, detection));
   assert.equal(outcome.status, "verified");
   if (outcome.status !== "verified") return;

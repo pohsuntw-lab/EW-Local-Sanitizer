@@ -153,33 +153,47 @@ test("forces secret deletion and rejects reason, token-label and generalization 
   const context = dictionary([]);
   const registry = ProjectTokenRegistry.create(context.dictionary.projectId, context.dictionary);
   const credentialText = "password=synthetic-password-123";
-  const credential = detectText(credentialText, context)[0];
+  const credentialFindings = detectText(credentialText, context);
+  const credential = credentialFindings[0];
   assert.ok(credential);
-  assert.throws(() => transformText(credentialText, [credential], [{ findingId: credential.findingId, action: "keep", reasonCode: "OPERATIONAL_CONTEXT" }], { dictionary: context.dictionary, tokenRegistry: registry }), /must be deleted/);
+  assert.throws(() => transformText(credentialText, credentialFindings, [{ findingId: credential.findingId, action: "keep", reasonCode: "OPERATIONAL_CONTEXT" }], { dictionary: context.dictionary, tokenRegistry: registry }), /must be deleted/);
   const forgedCredential = { ...credential, type: "email", severity: "high" } as Finding;
   assert.throws(() => transformText(credentialText, [forgedCredential], [{ findingId: forgedCredential.findingId, action: "tokenize" }], { dictionary: context.dictionary, tokenRegistry: registry }), /Untrusted/);
   assert.throws(() => { (credential as { type: string }).type = "email"; }, /read only|Cannot assign/);
 
   const emailText = "test.person@example.com";
-  const email = detectText(emailText, context)[0];
+  const emailFindings = detectText(emailText, context);
+  const email = emailFindings[0];
   assert.ok(email);
-  assert.throws(() => transformText(emailText, [email], [{ findingId: email.findingId, action: "tokenize", tokenLabel: "EMAIL-sk-SYNTHETICSECRET123456789" }], { dictionary: context.dictionary, tokenRegistry: registry }), /approved/);
-  assert.throws(() => transformText(emailText, [email], [{ findingId: email.findingId, action: "keep", reasonCode: "test.person@example.com" as ReasonCode }], { dictionary: context.dictionary, tokenRegistry: registry }), /reason code/);
-  assert.throws(() => transformText(emailText, [email], [{ findingId: email.findingId, action: "generalize", generalizationRuleId: "test.person@example.com" }], { dictionary: context.dictionary, tokenRegistry: registry }), /approved rule/);
-  assert.throws(() => transformText(emailText, [email], [{ findingId: email.findingId, action: "delete", reasonCode: "PUBLICLY_APPROVED" }], { dictionary: context.dictionary, tokenRegistry: registry }), /only valid for keep/);
-  assert.throws(() => transformText(emailText, [email], [
+  assert.throws(() => transformText(emailText, emailFindings, [{ findingId: email.findingId, action: "tokenize", tokenLabel: "EMAIL-sk-SYNTHETICSECRET123456789" }], { dictionary: context.dictionary, tokenRegistry: registry }), /approved/);
+  assert.throws(() => transformText(emailText, emailFindings, [{ findingId: email.findingId, action: "keep", reasonCode: "test.person@example.com" as ReasonCode }], { dictionary: context.dictionary, tokenRegistry: registry }), /reason code/);
+  assert.throws(() => transformText(emailText, emailFindings, [{ findingId: email.findingId, action: "generalize", generalizationRuleId: "test.person@example.com" }], { dictionary: context.dictionary, tokenRegistry: registry }), /approved rule/);
+  assert.throws(() => transformText(emailText, emailFindings, [{ findingId: email.findingId, action: "delete", reasonCode: "PUBLICLY_APPROVED" }], { dictionary: context.dictionary, tokenRegistry: registry }), /only valid for keep/);
+  assert.throws(() => transformText(emailText, emailFindings, [
     { findingId: email.findingId, action: "delete" },
     { findingId: "00000000-0000-4000-8000-000000000099", action: "delete" },
   ], { dictionary: context.dictionary, tokenRegistry: registry }), /current finding/);
   const otherDictionary = dictionary([], false, "dict-2");
   const otherRegistry = ProjectTokenRegistry.create(otherDictionary.dictionary.projectId, otherDictionary.dictionary);
-  assert.throws(() => transformText(emailText, [email], [{ findingId: email.findingId, action: "delete" }], {
+  assert.throws(() => transformText(emailText, emailFindings, [{ findingId: email.findingId, action: "delete" }], {
     dictionary: otherDictionary.dictionary,
     tokenRegistry: otherRegistry,
   }), /mismatched/);
   const wrongProjectRegistry = ProjectTokenRegistry.create(otherDictionary.dictionary.projectId, context.dictionary);
-  assert.throws(() => transformText(emailText, [email], [{ findingId: email.findingId, action: "delete" }], {
+  assert.throws(() => transformText(emailText, emailFindings, [{ findingId: email.findingId, action: "delete" }], {
     dictionary: context.dictionary,
     tokenRegistry: wrongProjectRegistry,
   }), /different projects/);
+});
+
+test("transformation rejects an omitted or copied subset of an authentic finding set", () => {
+  const context = dictionary([]);
+  const text = "test.person@example.com and 0912-345-678";
+  const findings = detectText(text, context);
+  assert.equal(findings.length, 2);
+  const registry = ProjectTokenRegistry.create(context.dictionary.projectId, context.dictionary);
+  const subset = findings.slice(0, 1);
+  assert.throws(() => transformText(text, subset, [{ findingId: subset[0]!.findingId, action: "delete" }], {
+    dictionary: context.dictionary, tokenRegistry: registry,
+  }), /Untrusted or mismatched findings/);
 });

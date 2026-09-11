@@ -18,9 +18,11 @@ Version: 0.1.0 MVP
 - B3b: Unsupported encodings, binary content masquerading as text and uncertain decoding fail closed; a single disallowed C0/C1 control character is rejected even in otherwise valid Unicode text.
 - B3c: CSV/TSV parsing uses fixed format delimiters, preserves quoted delimiters and newlines, scans decoded cells independently, and rejects malformed quotes, inconsistent columns, lone carriage returns and resource-limit overflow.
 - B3d: Formula-like tabular cells cannot be kept, deleted, tokenized or generalized through an unrelated rule; the controlled literal-text transformation is visible in the public finding counts and leaves no formula prefix on second scan.
-- B4: DOCX test detects text in body, table, header/footer and comment fixtures.
-- B5: XLSX test identifies hidden sheets, hidden rows/columns, formulas, comments and external-link indicators in fixtures.
-- B6: PPTX test identifies slide text, speaker notes, comments and document-property indicators in fixtures.
+- B4: DOCX synthetic tests detect body, table, header/footer, deleted revision and comment content; cloud derivatives omit deleted/comment content and controlled transformations remove detected sensitive values.
+- B5: XLSX synthetic tests identify hidden sheets, hidden rows/columns, formulas, comments and external-link indicators; export requires explicit visible-sheet approval and produces a Markdown index plus CSV per approved visible sheet.
+- B6: PPTX synthetic tests identify visible/hidden slide text, speaker notes, comments, external links and document-property indicators; hidden/notes/comment content is absent from the derivative.
+- B6a: OOXML intake validates extension/content-type agreement, central and local ZIP headers, duplicate/unsafe paths, encryption/compression/size limits and XML encoding; macros, DTD/entities and malformed packages fail closed.
+- B6b: Office media, drawing, chart, diagram, embedded-object, ActiveX, custom-XML or signature entries make parser coverage incomplete until later format/OCR support is implemented.
 - B7: PDF test distinguishes text-layer and image-only pages and flags embedded active-content indicators when detectable.
 - B8: Image test performs local OCR and strips supported EXIF/GPS metadata from the derivative.
 
@@ -41,6 +43,7 @@ Version: 0.1.0 MVP
 - D3: Generalize replaces exact values according to a recorded rule.
 - D4: Credentials and private keys cannot be kept or exported.
 - D4a: Transformation accepts only immutable detector-issued findings bound to the same text, policy and dictionary; finding retyping, cloning, cross-dictionary reuse and unrelated decisions fail closed.
+- D4b: Transformation requires the detector's complete finding-set capability and matching `text`, `tabular` or `office` scan profile; omitted findings or a generic-text scan substituted for structured input fail closed.
 - D5: A high/critical local `keep` requires a controlled reason code and remains unresolved, permanently blocking cloud package creation. Free-form local detail is never packaged.
 - D5a: Low/medium `keep` records residual risk and never produces a completely-safe status.
 - D6: Image redactions are flattened into new pixels; recovering underlying text from layers is impossible.
@@ -76,6 +79,7 @@ Version: 0.1.0 MVP
 - F15: Verification tests the complete MVP route matrix: P0 permits approved or sanitized cloud routes, P1/P2 permit only sanitized cloud routes, and P3 never receives an export capability even when its requested route is local-only.
 - F16: A multi-file session produces one ordered derivative and source/hash manifest record per source, aggregates finding counts correctly, and binds every source to package-time integrity checks.
 - F17: CSV/TSV sources produce matching allowlisted derivative extensions, record their source format in the manifest, and are reparsed cell-by-cell during second scan before a verified export capability is issued.
+- F18: Office manifests record all derivatives per source; XLSX index/sheet files are allowlisted and hashed individually, while DOCX/PPTX produce only structured Markdown derivatives.
 
 For v0.1, F6 means local validation against `schemas/ew-safe-package-manifest-v0.1.schema.json`. Validation by EW Enterprise Secure Knowledge Forge is pending integration and must not be claimed complete.
 
@@ -89,6 +93,7 @@ For v0.1, F6 means local validation against `schemas/ew-safe-package-manifest-v0
 - I6: Post-write validation and failure cleanup are bound to the exact regular files created by the export call; path replacement or symbolic-link substitution fails closed without deleting the replacement, and ZIP/checksum/receipt bytes are rechecked before completion.
 - I7: The offline dependency-policy check enforces exact direct versions, lockfile agreement, SHA-512 integrity, recorded licenses and documentation, and rejects install-script/native-build flags; the recorded baseline audit has zero known vulnerabilities.
 - I8: Independent synthetic CSV/TSV positive, negative and tamper fixtures cover sensitive-cell detection, formula neutralization, malformed/binary rejection and post-verification source mutation.
+- I9: Independent synthetic DOCX/XLSX/PPTX positive, negative and tamper fixtures cover required structures, macro/content mismatch rejection, incomplete embedded-content coverage and source-integrity enforcement.
 
 ## G. Windows delivery
 

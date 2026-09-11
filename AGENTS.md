@@ -24,8 +24,10 @@ Build EW Local Sanitizer v0.1.0 as a Windows-first, local-only pre-upload docume
 - UI may call the core through a narrow typed IPC layer; renderer receives masked previews only when practical.
 - Pin dependencies and document each security-sensitive dependency.
 - Do not silently skip unsupported document structures.
-- For the current versioned content policy, accept only TXT/Markdown/CSV/TSV, at most 10 MiB per file and 100 files per session; content/encoding validation must not rely on extension alone.
+- For the current versioned content policy, accept only TXT/Markdown/CSV/TSV/DOCX/XLSX/PPTX; content/encoding validation must not rely on extension alone.
 - CSV/TSV must be parsed cell-by-cell with bounded structure. Malformed or ambiguous structure fails closed, and formula-like cells require the controlled literal-text transformation before export.
+- OOXML must pass bounded ZIP central/local-header validation and strict local XML parsing. Reject macros, encryption, DTD/entities and unsafe package structure; incomplete embedded-content coverage blocks export.
+- Office hidden content, formulas, external links and metadata indicators are forced-delete. XLSX visible worksheets require explicit selection approval and every generated derivative must be independently allowlisted, hashed and rescanned.
 - High/critical `keep` is local-review-only and remains unresolved for cloud export. P3 is always local-only.
 - Packaging must consume an opaque verified result and must not expose a direct arbitrary-content export API.
 - Public reports use controlled reason codes only. Token labels and generalization replacements must be controlled policy values and scanned again.
@@ -44,7 +46,7 @@ npm run test:fixtures
 npm run build
 ```
 
-`npm run package:win` remains an intentional failing placeholder until the explicitly authorized Windows packaging phase. Do not add Office/PDF parsers, OCR, Electron or Windows packaging during the CSV/TSV slice.
+`npm run package:win` remains an intentional failing placeholder until the explicitly authorized Windows packaging phase. Do not add PDF parsing, OCR, Electron or Windows packaging during the Office slice.
 
 ## Definition of done
 

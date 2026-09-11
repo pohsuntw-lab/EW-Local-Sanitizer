@@ -67,6 +67,8 @@ Only low/medium findings may remain in an exportable derivative. They carry resi
 
 Credentials and private keys cannot be kept or tokenized into the Safe Package; they must be deleted. P3 knowledge whose structure is itself sensitive must be handled locally and cannot be made cloud-safe by renaming entities.
 
+For the Office core, comments, deleted revision text, hidden worksheets/rows/columns, hidden slides, speaker notes, formulas, external relationships and document-property indicators are reviewable locally but forced out of cloud derivatives. The public report records only controlled finding types and masked previews. XLSX export is blocked until the caller explicitly approves all visible worksheets selected for the current core run.
+
 Classification and routes are fixed for the MVP:
 
 - P0 Public: exportable only after complete verification and a passing second scan.
@@ -102,7 +104,7 @@ The encrypted project token registry gives the same normalized original the same
 
 Each dictionary records its project UUID, and that UUID participates in the dictionary snapshot hash. A dictionary, token registry, finding set or transformation from another project cannot be substituted during verification.
 
-## Text and tabular v0.2 limits
+## Text, tabular and Office v0.3 limits
 
 - TXT, Markdown, CSV and TSV only in the currently implemented core. Later MVP formats remain pending.
 - Maximum 10 MiB per file, 100 files per session and 100 MiB total source bytes per session.
@@ -114,6 +116,12 @@ Each dictionary records its project UUID, and that UUID participates in the dict
 - Tabular scanning is cell-bounded so a detector cannot combine unrelated adjacent cells. Embedded delimiters and line endings are accepted only inside quoted fields.
 - Tabular policy limits are 100,000 rows, 1,000 columns, 1,000,000 cells and 1,000,000 UTF-16 code units per decoded cell, subject to the stricter 10 MiB file limit.
 - A non-empty cell whose first non-whitespace character is `=`, `+`, `-` or `@` is a controlled spreadsheet-formula finding. Export requires the `FORMULA_AS_LITERAL` transformation, which prefixes that character with an apostrophe in the derivative and records the event in the public finding counts.
+- DOCX, XLSX and PPTX are accepted only as matching, non-macro OOXML ZIP packages. Extension, package structure and the main-part content type must agree.
+- Office sources are limited to 25 MiB compressed, 2,048 ZIP entries, 16 MiB per expanded entry and 64 MiB aggregate expanded data. ZIP64, encryption, spanning, unsafe/duplicate paths, symbolic links, unsupported compression, noncanonical headers, DTD/entity declarations and malformed XML fail closed.
+- DOCX derivatives are structured Markdown containing body/table/header/footer and supported note text. Deleted revisions and comments are removed.
+- XLSX derivatives contain a controlled Markdown index plus one CSV per explicitly approved visible worksheet. Formulas and hidden sheet/row/column/comment content are removed.
+- PPTX derivatives are structured Markdown by visible slide. Hidden slides, speaker notes and comments are removed.
+- Embedded media, drawings, charts, diagrams, objects, ActiveX, custom XML and package signatures currently make Office coverage incomplete. Export remains blocked until their later parser/OCR coverage is implemented.
 
 ## MVP screens
 

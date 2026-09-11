@@ -16,7 +16,13 @@ interface ManifestSemantics {
   dictionary: { version: string; sha256: string };
   classification: Classification;
   allowed_route: AllowedRoute;
-  sources: { source_id: string; source_format: "txt" | "markdown" | "csv" | "tsv"; derivative_path: string }[];
+  sources: {
+    source_id: string;
+    source_format: "txt" | "markdown" | "csv" | "tsv" | "docx" | "xlsx" | "pptx";
+    derivative_path: string;
+    derivative_sha256: string;
+    derivatives: { path: string; sha256: string }[];
+  }[];
   finding_counts: {
     by_type: Record<string, number>;
     by_severity: Record<string, number>;
@@ -35,7 +41,7 @@ function assertManifestSemantics(manifest: ManifestSemantics): void {
     throw new Error("Manifest second-scan binding is inconsistent");
   }
   const expected = new Set([
-    ...manifest.sources.map((source) => source.derivative_path),
+    ...manifest.sources.flatMap((source) => source.derivatives.map((derivative) => derivative.path)),
     "SAFE-MANIFEST.json",
     "DLP-REPORT.json",
     "README-SAFE-UPLOAD.md",
@@ -44,8 +50,20 @@ function assertManifestSemantics(manifest: ManifestSemantics): void {
     throw new Error("Manifest contains duplicate source IDs");
   }
   for (const source of manifest.sources) {
+    const primary = source.derivatives[0];
+    if (!primary || primary.path !== source.derivative_path || primary.sha256 !== source.derivative_sha256) {
+      throw new Error("Manifest primary derivative is inconsistent");
+    }
     const expectedExtension = source.source_format === "csv" || source.source_format === "tsv" ? source.source_format : "md";
-    if (!source.derivative_path.endsWith(`.${expectedExtension}`)) throw new Error("Manifest derivative format is inconsistent with its source");
+    if (source.source_format === "xlsx") {
+      const stem = /^(.+)-index\.md$/.exec(source.derivative_path)?.[1];
+      if (!stem || source.derivatives.length < 2 || source.derivatives.slice(1).some((derivative, index) =>
+        derivative.path !== `${stem}-sheet-${String(index + 1).padStart(3, "0")}.csv`)) {
+        throw new Error("Manifest XLSX derivative set is inconsistent");
+      }
+    } else if (source.derivatives.length !== 1 || !source.derivative_path.endsWith(`.${expectedExtension}`)) {
+      throw new Error("Manifest derivative format is inconsistent with its source");
+    }
   }
   const typeTotal = sumCounts(manifest.finding_counts.by_type);
   const severityTotal = sumCounts(manifest.finding_counts.by_severity);
@@ -56,7 +74,8 @@ function assertManifestSemantics(manifest: ManifestSemantics): void {
   if ((manifest.finding_counts.by_action.keep ?? 0) !== manifest.residual_risk_count) {
     throw new Error("Manifest residual-risk count is inconsistent");
   }
-  if (expected.size !== manifest.sources.length + 3 || expected.size !== manifest.package_allowlist.length ||
+  const derivativeCount = manifest.sources.reduce((total, source) => total + source.derivatives.length, 0);
+  if (expected.size !== derivativeCount + 3 || expected.size !== manifest.package_allowlist.length ||
     manifest.package_allowlist.some((entry) => !expected.has(entry))) {
     throw new Error("Manifest package allowlist is inconsistent with sources");
   }

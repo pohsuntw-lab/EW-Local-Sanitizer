@@ -11,7 +11,11 @@ export type FindingType =
   | "bank-account"
   | "contract-id"
   | "exact-data"
-  | "spreadsheet-formula";
+  | "spreadsheet-formula"
+  | "office-hidden-content"
+  | "office-formula"
+  | "office-external-link"
+  | "office-metadata";
 export type Action = "delete" | "tokenize" | "generalize" | "keep";
 export type Classification = "P0" | "P1" | "P2" | "P3";
 export type AllowedRoute = "cloud-approved" | "cloud-sanitized" | "local-only";
@@ -89,4 +93,5 @@ export interface TransformResult {
   policyVersion: string;
   dictionaryVersion: string;
   dictionaryHash: string;
+  scanProfile: "text" | "tabular" | "office";
 }

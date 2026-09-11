@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { basename } from "node:path";
 import { assertValidManifest } from "./manifest.js";
 import { readWrittenFile, removeWrittenFile, writeExclusiveFile, type WrittenFileIdentity } from "./exclusive-write.js";
-import { MAX_SAFE_PACKAGE_BYTES } from "./policy.js";
+import { MAX_SAFE_DERIVATIVE_FILES, MAX_SAFE_PACKAGE_BYTES } from "./policy.js";
 import type { PublicFinding } from "./types.js";
 import { assertVerifiedPublicOutput, assertVerifiedSourceIntegrity, verifiedPayloadForPackaging, type VerifiedExport } from "./verification.js";
 import { inspectStoreZip, writeStoreZip, type ZipEntry } from "./zip.js";
@@ -22,10 +22,16 @@ export function createSafePackage(capability: VerifiedExport, outputPath: string
   }
   const checksumPath = `${outputPath}.sha256`;
   const receiptPath = `${outputPath}.receipt.json`;
-  const derivativeEntries: ZipEntry[] = verified.items.map((item, index) => ({
-    name: `SAFE_SOURCE/source-${String(index + 1).padStart(3, "0")}.${item.source.derivativeExtension}`,
-    data: Buffer.from(item.derivative.sanitizedText, "utf8"),
+  const derivativeRecords = verified.items.flatMap((item, index) => item.derivative.artifacts.map((artifact) => {
+    if (!/^(?:|-[a-z0-9]+(?:-[a-z0-9]+)*)$/.test(artifact.suffix)) throw new Error("Derivative suffix is not controlled");
+    const entry: ZipEntry = {
+      name: `SAFE_SOURCE/source-${String(index + 1).padStart(3, "0")}${artifact.suffix}.${artifact.extension}`,
+      data: Buffer.from(artifact.text, "utf8"),
+    };
+    return { sourceIndex: index, entry };
   }));
+  if (derivativeRecords.length > MAX_SAFE_DERIVATIVE_FILES) throw new Error("Safe Package exceeds derivative-file policy limit");
+  const derivativeEntries = derivativeRecords.map((record) => record.entry);
   const allowlist = new Set([
     ...derivativeEntries.map((entry) => entry.name),
     "SAFE-MANIFEST.json",
@@ -49,14 +55,22 @@ export function createSafePackage(capability: VerifiedExport, outputPath: string
     },
     classification: verified.classification,
     allowed_route: verified.allowedRoute,
-    sources: verified.items.map((item, index) => ({
+    sources: verified.items.map((item, index) => {
+      const derivatives = derivativeRecords.filter((record) => record.sourceIndex === index).map((record) => ({
+        path: record.entry.name,
+        sha256: sha256(record.entry.data),
+      }));
+      if (derivatives.length === 0) throw new Error("Source produced no safe derivative");
+      return {
       source_id: item.source.sourceId,
       source_sha256: item.source.originalHash,
       source_format: item.source.format,
-      derivative_path: derivativeEntries[index]?.name,
-      derivative_sha256: derivativeHashes[index],
+      derivative_path: derivatives[0]!.path,
+      derivative_sha256: derivatives[0]!.sha256,
+      derivatives,
       parser_coverage: item.source.coverage,
-    })),
+      };
+    }),
     finding_counts: countFindings(allFindings),
     unresolved_count: 0,
     residual_risk_count: residualRisk,

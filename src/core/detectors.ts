@@ -57,10 +57,17 @@ export interface DetectionSegment {
   readonly valueStarts: readonly number[];
   readonly valueEnds: readonly number[];
   readonly formulaAware?: boolean;
+  readonly structuralFinding?: {
+    readonly type: FindingType;
+    readonly severity: Severity;
+    readonly detector: string;
+  };
 }
 
-interface FindingBinding { textHash: string; projectId: string; dictionaryVersion: string; dictionaryHash: string; policyVersion: string }
+type ScanProfile = "text" | "tabular" | "office";
+interface FindingBinding { textHash: string; projectId: string; dictionaryVersion: string; dictionaryHash: string; policyVersion: string; scanProfile: ScanProfile }
 const findingBindings = new WeakMap<Finding, FindingBinding>();
+const findingSetBindings = new WeakMap<readonly Finding[], FindingBinding>();
 
 export function detectText(text: string, context: DetectionContext): Finding[] {
   if (!isAuthenticDictionarySnapshot(context.dictionary)) throw new Error("Untrusted dictionary snapshot");
@@ -71,6 +78,7 @@ export function detectText(text: string, context: DetectionContext): Finding[] {
     dictionaryVersion: context.dictionary.dictionaryVersion,
     dictionaryHash: context.dictionary.dictionaryHash,
     policyVersion: PLAIN_TEXT_POLICY_VERSION,
+    scanProfile: "text",
   });
   const findings: Finding[] = [];
   for (const detector of DETECTORS) {
@@ -82,10 +90,10 @@ export function detectText(text: string, context: DetectionContext): Finding[] {
     }
   }
   findings.push(...detectDictionaryTerms(text, context.dictionary, MAX_FINDINGS_PER_FILE - findings.length, binding));
-  return removeOverlaps(findings);
+  return completeFindingSet(removeOverlaps(findings), binding);
 }
 
-export function detectTextSegments(text: string, segments: readonly DetectionSegment[], context: DetectionContext): Finding[] {
+export function detectTextSegments(text: string, segments: readonly DetectionSegment[], context: DetectionContext, scanProfile: Exclude<ScanProfile, "text"> = "tabular"): Finding[] {
   if (!isAuthenticDictionarySnapshot(context.dictionary)) throw new Error("Untrusted dictionary snapshot");
   if (Buffer.byteLength(text, "utf8") > MAX_DETECTION_TEXT_BYTES) throw new Error("Detection input exceeds size policy; coverage is incomplete");
   const binding = Object.freeze({
@@ -94,6 +102,7 @@ export function detectTextSegments(text: string, segments: readonly DetectionSeg
     dictionaryVersion: context.dictionary.dictionaryVersion,
     dictionaryHash: context.dictionary.dictionaryHash,
     policyVersion: PLAIN_TEXT_POLICY_VERSION,
+    scanProfile,
   });
   const findings: Finding[] = [];
   for (const segment of segments) {
@@ -119,17 +128,38 @@ export function detectTextSegments(text: string, segments: readonly DetectionSeg
         findings.push(makeFinding("spreadsheet-formula", "medium", start, end, text.slice(start, end), "tabular-formula-prefix", binding, match[0].slice(-1)));
       }
     }
+    if (segment.structuralFinding && segment.value.length > 0) {
+      if (findings.length >= MAX_FINDINGS_PER_FILE) throw new Error("Finding limit exceeded; detection coverage is incomplete");
+      const start = segment.valueStarts[0];
+      const end = segment.valueEnds[segment.value.length - 1];
+      if (start === undefined || end === undefined) throw new Error("Invalid structural finding mapping");
+      findings.push(makeFinding(segment.structuralFinding.type, segment.structuralFinding.severity, start, end,
+        text.slice(start, end), segment.structuralFinding.detector, binding, `[${segment.structuralFinding.type}]`));
+    }
   }
-  return removeOverlaps(findings);
+  return completeFindingSet(removeOverlaps(findings), binding);
 }
 
 export function areAuthenticFindingsFor(findings: readonly Finding[], text: string, dictionary: DictionarySnapshot): boolean {
   const textHash = createHash("sha256").update(text, "utf8").digest("hex");
-  return findings.every((finding) => {
+  const setBinding = findingSetBindings.get(findings);
+  return setBinding?.textHash === textHash && setBinding.projectId === dictionary.projectId &&
+    setBinding.dictionaryVersion === dictionary.dictionaryVersion && setBinding.dictionaryHash === dictionary.dictionaryHash &&
+    setBinding.policyVersion === PLAIN_TEXT_POLICY_VERSION && findings.every((finding) => {
     const binding = findingBindings.get(finding);
     return binding?.textHash === textHash && binding.projectId === dictionary.projectId && binding.dictionaryVersion === dictionary.dictionaryVersion &&
       binding.dictionaryHash === dictionary.dictionaryHash && binding.policyVersion === PLAIN_TEXT_POLICY_VERSION;
   });
+}
+
+export function authenticFindingSetProfile(findings: readonly Finding[]): ScanProfile | undefined {
+  return findingSetBindings.get(findings)?.scanProfile;
+}
+
+function completeFindingSet(findings: Finding[], binding: FindingBinding): Finding[] {
+  Object.freeze(findings);
+  findingSetBindings.set(findings, binding);
+  return findings;
 }
 
 export function maskValue(value: string): string {
