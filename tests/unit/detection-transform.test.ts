@@ -19,13 +19,16 @@ test("detects synthetic credentials, checksum-aware PII, commercial IDs and norm
   const text = [
     "Customer example foundry", "Alias Example Plant", "test.person@example.com", "0912-345-678", "+886 912 345 678", "886-912-345-678",
     "A123456789", "a123456789",
-    "台北市中正區測試路 123 號", "10.10.2.15", "contract CTR-SYNTH-001", "bank_account=1234 5678 9012", "api_key=sk-abcdefghijklmnopqrstuvwxyz123456",
+    "台北市中正區測試路 123 號", "10.10.2.15", "contract CTR-SYNTH-001", "bank_account=1234 5678 9012",
+    "\"account_number\": \"9876 5432 1098\"", "api_key=sk-abcdefghijklmnopqrstuvwxyz123456",
   ].join("\n");
   const findings = detectText(text, context);
   const types = new Set(findings.map((finding) => finding.type));
   for (const type of ["exact-data", "email", "phone", "taiwan-id", "address", "ip-address", "contract-id", "bank-account", "credential"]) assert.ok(types.has(type as never), `missing ${type}`);
   assert.ok(findings.filter((finding) => finding.type === "phone").length >= 3);
   assert.ok(findings.filter((finding) => finding.type === "taiwan-id").length >= 2);
+  assert.ok(findings.filter((finding) => finding.type === "bank-account").length >= 2);
+  assert.equal(detectText('Documentation key "account_number": "<redacted>"', context).some((finding) => finding.type === "bank-account"), false);
   assert.equal(findings.every((finding) => /^[0-9a-f-]{36}$/i.test(finding.findingId)), true);
   assert.notEqual(detectText(text, context)[0]?.findingId, findings[0]?.findingId);
 });

@@ -25,7 +25,7 @@ Version: 0.1.0 MVP
 ## C. Detection
 
 - C1: Synthetic standard/RSA/EC/DSA/OpenSSH/encrypted/PGP private-key blocks, OpenAI-style tokens, documented GitHub legacy/fine-grained/stateless token shapes, passwords and connection strings—including single-line quoted key/value assignments—are critical findings; prefix-only examples remain negative and mismatched key armor is not consumed as one block.
-- C2: Synthetic checksum-valid Taiwan IDs in upper/lowercase, Taiwan mobile numbers in local and `+886`/`886` forms, email, address, bank and contract identifiers are detected according to published fixture expectations.
+- C2: Synthetic checksum-valid Taiwan IDs in upper/lowercase, Taiwan mobile numbers in local and `+886`/`886` forms, email, address, quoted/unquoted contextual bank accounts and contract identifiers are detected according to published fixture expectations; a bank-account field name without a numeric value remains negative.
 - C3: Local exact-data dictionaries find synthetic customer, employee, project and technical terms using bounded literal matching; dictionary or finding ceilings fail closed without partial-coverage claims.
 - C4: Reports show masked previews only; raw sensitive values do not appear in exported JSON.
 - C5: No-finding output states that absence of detection is not proof of safety.

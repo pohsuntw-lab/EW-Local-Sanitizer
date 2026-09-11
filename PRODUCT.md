@@ -45,7 +45,7 @@ The MVP does not promise preservation of the original Office or PDF layout. Know
 
 - Credentials: passwords, API keys, access tokens, private keys and connection strings, including supported single-line quoted assignment forms used by JSON, configuration and shell-style text. GitHub detection covers documented classic/app prefixes, fine-grained `github_pat_` and stateless `ghs_APPID_JWT` shapes. Private-key blocks include matching standard, RSA, EC, DSA, OpenSSH, encrypted PKCS#8-style and PGP armor labels.
 - Personal identifiers: checksum-valid Taiwan ID patterns with case-insensitive input, names from local dictionaries, Taiwan mobile numbers in local or `+886`/`886` international form, email and addresses.
-- Enterprise identifiers: customer, supplier, employee, project, product and facility names.
+- Enterprise identifiers: customer, supplier, employee, project, product and facility names. Bank-account context detection accepts controlled unquoted and single-line quoted English key/value assignments without treating a field name alone as a finding.
 - Infrastructure: public/private IP, hostnames, account names, internal URLs and device IDs.
 - Commercial information: quotations, exact costs, prices, margins, contract numbers and bank data.
 - Technical know-how: source code secrets, equipment recipes, exact operating parameters and unpublished patent terms from enterprise dictionaries.

@@ -38,7 +38,12 @@ const DETECTORS: readonly Detector[] = [
   { name: "taiwan-mobile", type: "phone", severity: "high", pattern: /(?<!\d)(?:(?:\+?886)[- ]?|0)9\d{2}[- ]?\d{3}[- ]?\d{3}(?!\d)/g },
   { name: "taiwan-id-checksum", type: "taiwan-id", severity: "high", pattern: /\b[A-Z][12]\d{8}\b/gi, validate: validTaiwanId },
   { name: "taiwan-address-context", type: "address", severity: "high", pattern: /(?:台灣|臺灣)?(?:台北|臺北|新北|桃園|台中|臺中|台南|臺南|高雄|基隆|新竹|嘉義|彰化|屏東|宜蘭|花蓮|台東|臺東|澎湖|金門|連江)[市縣][^\n,，]{0,32}(?:路|街|大道|巷)\s*\d{1,5}\s*號/g },
-  { name: "bank-account-context", type: "bank-account", severity: "high", pattern: /\b(?:bank[_ -]?account|account[_ -]?number)\s*[:=]\s*\d[\d -]{7,20}\d\b/gi },
+  {
+    name: "bank-account-context",
+    type: "bank-account",
+    severity: "high",
+    pattern: /(?<![A-Za-z0-9_])["']?(?:bank[_ -]?account|account[_ -]?number)["']?\s*[:=]\s*(?:"\d[\d -]{7,20}\d"|'\d[\d -]{7,20}\d'|\d[\d -]{7,20}\d\b)/gi,
+  },
   { name: "contract-identifier", type: "contract-id", severity: "high", pattern: /\b(?:CONTRACT|CTR)-[A-Z0-9][A-Z0-9-]{5,31}\b/gi },
   { name: "ipv4", type: "ip-address", severity: "medium", pattern: /\b(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}\b/g },
 ];

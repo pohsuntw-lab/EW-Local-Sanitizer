@@ -51,6 +51,7 @@ Parser failure is fail-closed: the file cannot be labelled safe.
 Combines:
 
 - regex and checksum-aware detectors, including case-insensitive checksum-valid Taiwan IDs and local/`+886`/`886` Taiwan mobile formats;
+- context-bound bank-account detection for controlled unquoted and single/double-quoted single-line assignments;
 - high-confidence secret patterns;
 - local exact-data dictionaries;
 - enterprise vocabulary rules;
