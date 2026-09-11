@@ -21,6 +21,13 @@ const DETECTORS: readonly Detector[] = [
   },
   { name: "openai-style-token", type: "api-token", severity: "critical", pattern: /\bsk-[A-Za-z0-9_-]{20,}\b/g },
   { name: "github-token", type: "api-token", severity: "critical", pattern: /\bgh[pousr]_[A-Za-z0-9]{20,}\b/g },
+  { name: "github-fine-grained-token", type: "api-token", severity: "critical", pattern: /\bgithub_pat_[A-Za-z0-9_]{20,}\b/g },
+  {
+    name: "github-stateless-installation-token",
+    type: "api-token",
+    severity: "critical",
+    pattern: /\bghs_[0-9]+_[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g,
+  },
   {
     name: "credential-assignment",
     type: "credential",

@@ -64,6 +64,8 @@ test("classifies synthetic private keys, standalone tokens, passwords and connec
     "-----BEGIN PGP PRIVATE KEY BLOCK-----\nU1lOVEhFVElDLVBHUA==\n-----END PGP PRIVATE KEY BLOCK-----",
     "sk-SYNTHETICOPENAITOKEN1234567890",
     "ghp_SYNTHETICGITHUBTOKEN1234567890",
+    "github_pat_SYNTHETIC_FINE_GRAINED_TOKEN_1234567890",
+    "ghs_12345_SYNTHETICHEADER.SYNTHETICPAYLOAD.SYNTHETICSIGNATURE",
     "password=synthetic-password-123",
     "Server=synthetic-db;Password=synthetic-connection-secret;",
     "\"password\": \"synthetic pass phrase\"",
@@ -71,11 +73,12 @@ test("classifies synthetic private keys, standalone tokens, passwords and connec
   ].join("\n");
   const findings = detectText(text, context);
   assert.ok(findings.filter((finding) => finding.type === "private-key").length >= 7);
-  assert.ok(findings.filter((finding) => finding.type === "api-token").length >= 2);
+  assert.ok(findings.filter((finding) => finding.type === "api-token").length >= 4);
   assert.ok(findings.filter((finding) => finding.type === "credential").length >= 4);
   assert.equal(findings.every((finding) => finding.severity === "critical"), true);
   const mismatchedArmor = "-----BEGIN RSA PRIVATE KEY-----\nU1lOVEhFVElD\n-----END EC PRIVATE KEY-----";
   assert.equal(detectText(mismatchedArmor, context).some((finding) => finding.type === "private-key"), false);
+  assert.equal(detectText("Documentation prefixes: github_pat_ and ghs_APPID_JWT", context).some((finding) => finding.type === "api-token"), false);
 });
 
 test("encrypts dictionary and token registry with versioned authenticated headers", () => {

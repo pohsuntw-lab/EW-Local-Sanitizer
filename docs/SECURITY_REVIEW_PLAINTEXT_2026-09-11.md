@@ -35,6 +35,7 @@ Scope: phase 0 and phase 1 on `codex/plaintext-hardening-v0.1`. The review did n
 | Medium | Manifest count maps were individually schema-valid even when their type/severity/action totals disagreed or residual risk differed from the keep count. | Local manifest semantics now require equal dimension totals and bind residual risk to the keep action count; inconsistent manifests fail validation. |
 | High | The credential assignment detector did not recognize quoted keys or quoted password/secret values containing spaces, allowing common JSON, configuration and shell-style forms to evade the forced-delete path. | The bounded single-line detector now recognizes unquoted and single/double-quoted assignment forms; synthetic tests require all variants to be critical credentials. |
 | High | Private-key detection omitted encrypted PKCS#8-style, DSA and PGP armor and allowed BEGIN/END labels of different types to form one match. | Supported private-key armor labels were expanded and bound with a regular-expression backreference; synthetic tests cover standard, encrypted, DSA and PGP blocks. |
+| High | GitHub token detection omitted the documented `github_pat_` fine-grained form and the 2026 stateless `ghs_APPID_JWT` installation-token form. | Separate bounded rules now classify synthetic fine-grained and stateless installation shapes as critical while leaving prefix-only documentation examples negative. |
 
 ## Residual risks and release gates
 
