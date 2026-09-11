@@ -34,17 +34,20 @@ The application must contain no HTTP client path used by the scanning workflow. 
 - Computes SHA-256 before parsing.
 - Opens sources read-only.
 - Creates stable local source IDs without embedding full paths into exported reports.
-- Enforces the versioned plain-text policy limits: TXT/Markdown, 10 MiB per file, 100 files and 100 MiB total source bytes per session.
+- Enforces the versioned content policy limits: TXT/Markdown/CSV/TSV, 10 MiB per file, 100 files and 100 MiB total source bytes per session.
 - Validates content and supported Unicode decoding independently of the extension; binary or uncertain input fails closed. Any C0/C1 control character other than tab, carriage return or line feed is sufficient to reject the file rather than relying on a percentage threshold.
 
 ### 2. Format adapters
 
-- Plain text and tabular adapters.
+- Plain text adapter for TXT/Markdown.
+- Strict cell-aware CSV/TSV adapter with fixed delimiters, bounded rows/columns/cells, quoted-field mapping back to source offsets and fail-closed malformed-row handling.
 - OOXML adapters for DOCX/XLSX/PPTX.
 - PDF adapter for text, page structure and risk indicators.
 - Image adapter for EXIF inspection, OCR and bounding boxes.
 
 Parser failure is fail-closed: the file cannot be labelled safe.
+
+The tabular adapter preserves CSV/TSV syntax in the derivative and scans decoded cells independently. It maps finding ranges back to the immutable source representation before transformation. Formula-like cells require a controlled apostrophe-prefix transformation; this changes the derivative intentionally so spreadsheet software treats the value as literal text.
 
 ### 3. Detection engine
 
@@ -131,11 +134,13 @@ Because an archive cannot contain its own final hash, the manifest records the p
 
 Local semantic validation supplements JSON Schema by requiring type, severity and action finding-count totals to agree, residual risk to equal the keep count, unique source IDs, consistent route/second-scan bindings and an allowlist exactly derived from the source entries.
 
-## Plain-text core boundaries
+## Text/tabular core boundaries
 
 Parsing, detection, policy, transformation, verification and packaging are separate modules. Session data is in memory by default and discarded when the session closes. Saving a project/session requires an encrypted local format. Logs and export receipts contain only source IDs, safe filenames, hashes, counts, status and controlled error/event codes; they never contain raw findings or full source paths.
 
 The core can prove that a P2 confirmation was issued for an exact review-state hash, but without the later UI/IPC layer it cannot prove that the issuing call originated from a physical user gesture. The future narrow IPC handler must invoke confirmation only from the explicit review action.
+
+The manifest records each source format and binds it to an allowlisted `.md`, `.csv` or `.tsv` derivative path. Verification reparses CSV/TSV derivatives and repeats cell-aware detection with the same policy and dictionary snapshot; malformed transformed structure or a remaining formula prefix fails closed.
 
 ## Logging
 

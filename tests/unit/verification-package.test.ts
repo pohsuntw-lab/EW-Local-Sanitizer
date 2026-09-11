@@ -255,6 +255,9 @@ test("writes allowlisted package, validates actual ZIP SHA-256 and excludes loca
   duplicateSource.sources.push({ ...duplicateSource.sources[0], derivative_path: "SAFE_SOURCE/source-002.md" });
   duplicateSource.package_allowlist.push("SAFE_SOURCE/source-002.md");
   assert.throws(() => assertValidManifest(duplicateSource), /duplicate source IDs/);
+  const mismatchedDerivativeFormat = JSON.parse(manifestEntry.data.toString("utf8"));
+  mismatchedDerivativeFormat.sources[0].source_format = "csv";
+  assert.throws(() => assertValidManifest(mismatchedDerivativeFormat), /derivative format/);
   assert.equal(archive.includes(Buffer.from("test.person@example.com")), false);
   assert.equal(archive.includes(Buffer.from("Example Foundry")), false);
   assert.equal(archive.includes(Buffer.from(".ewmap")), true);

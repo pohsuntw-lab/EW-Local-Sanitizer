@@ -16,7 +16,7 @@ interface ManifestSemantics {
   dictionary: { version: string; sha256: string };
   classification: Classification;
   allowed_route: AllowedRoute;
-  sources: { source_id: string; derivative_path: string }[];
+  sources: { source_id: string; source_format: "txt" | "markdown" | "csv" | "tsv"; derivative_path: string }[];
   finding_counts: {
     by_type: Record<string, number>;
     by_severity: Record<string, number>;
@@ -42,6 +42,10 @@ function assertManifestSemantics(manifest: ManifestSemantics): void {
   ]);
   if (new Set(manifest.sources.map((source) => source.source_id)).size !== manifest.sources.length) {
     throw new Error("Manifest contains duplicate source IDs");
+  }
+  for (const source of manifest.sources) {
+    const expectedExtension = source.source_format === "csv" || source.source_format === "tsv" ? source.source_format : "md";
+    if (!source.derivative_path.endsWith(`.${expectedExtension}`)) throw new Error("Manifest derivative format is inconsistent with its source");
   }
   const typeTotal = sumCounts(manifest.finding_counts.by_type);
   const severityTotal = sumCounts(manifest.finding_counts.by_severity);

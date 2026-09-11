@@ -106,6 +106,7 @@ function applyDecision(finding: Finding, decision: Decision, context: TransformC
   }
   const rule = decision.generalizationRuleId ? GENERALIZATION_RULES[decision.generalizationRuleId] : undefined;
   if (!rule || !rule.findingTypes.includes(finding.type)) throw new Error("Generalization must use an approved rule for the finding type");
+  if (finding.type === "spreadsheet-formula" && rule.id === "FORMULA_AS_LITERAL") return { replacement: `'${finding.value}` };
   return { replacement: rule.replacement };
 }
 
@@ -120,6 +121,9 @@ function validateDecision(decision: Decision, finding: Finding): void {
   }
   if (decision.action !== "tokenize" && decision.tokenLabel !== undefined) throw new Error("Token label is only valid for tokenization");
   if (decision.action !== "generalize" && decision.generalizationRuleId !== undefined) throw new Error("Generalization rule is only valid for generalization");
+  if (finding.type === "spreadsheet-formula" && (decision.action !== "generalize" || decision.generalizationRuleId !== "FORMULA_AS_LITERAL")) {
+    throw new Error("Spreadsheet formula prefixes must use the controlled literal-text transformation");
+  }
 }
 
 function validateFindingRanges(text: string, findings: Finding[]): void {

@@ -23,7 +23,7 @@ export function createSafePackage(capability: VerifiedExport, outputPath: string
   const checksumPath = `${outputPath}.sha256`;
   const receiptPath = `${outputPath}.receipt.json`;
   const derivativeEntries: ZipEntry[] = verified.items.map((item, index) => ({
-    name: `SAFE_SOURCE/source-${String(index + 1).padStart(3, "0")}.md`,
+    name: `SAFE_SOURCE/source-${String(index + 1).padStart(3, "0")}.${item.source.derivativeExtension}`,
     data: Buffer.from(item.derivative.sanitizedText, "utf8"),
   }));
   const allowlist = new Set([
@@ -52,6 +52,7 @@ export function createSafePackage(capability: VerifiedExport, outputPath: string
     sources: verified.items.map((item, index) => ({
       source_id: item.source.sourceId,
       source_sha256: item.source.originalHash,
+      source_format: item.source.format,
       derivative_path: derivativeEntries[index]?.name,
       derivative_sha256: derivativeHashes[index],
       parser_coverage: item.source.coverage,

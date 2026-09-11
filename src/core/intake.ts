@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { closeSync, constants, fstatSync, lstatSync, openSync, readFileSync } from "node:fs";
 import { extname } from "node:path";
 import { MAX_PLAIN_TEXT_BYTES, MAX_SESSION_FILES, MAX_SESSION_TOTAL_BYTES, PLAIN_TEXT_POLICY_VERSION } from "./policy.js";
+import { parseTabularText, type TabularDocument } from "./tabular.js";
 import type { CoverageStatus } from "./types.js";
 
 export interface PlainTextSource {
@@ -9,7 +10,8 @@ export interface PlainTextSource {
   readonly text: string;
   readonly originalHash: string;
   readonly size: number;
-  readonly format: "txt" | "markdown";
+  readonly format: "txt" | "markdown" | "csv" | "tsv";
+  readonly derivativeExtension: "md" | "csv" | "tsv";
   readonly encoding: "utf-8" | "utf-16le" | "utf-16be";
   readonly coverage: CoverageStatus;
   readonly policyVersion: string;
@@ -17,16 +19,26 @@ export interface PlainTextSource {
 
 const sourcePaths = new WeakMap<object, string>();
 const authenticSources = new WeakSet<object>();
+const tabularDocuments = new WeakMap<object, TabularDocument>();
 declare const sourceIntegrityProbeBrand: unique symbol;
 export interface SourceIntegrityProbe { readonly [sourceIntegrityProbeBrand]: true }
 const sourceIntegrityProbeStates = new WeakMap<object, { path: string; hash: string; size: number }>();
 
 export function intakePlainText(path: string): PlainTextSource {
+  return intakeSupportedText(path, "plain");
+}
+
+export function intakeTabular(path: string): PlainTextSource {
+  return intakeSupportedText(path, "tabular");
+}
+
+function intakeSupportedText(path: string, kind: "plain" | "tabular"): PlainTextSource {
   const metadata = lstatSync(path);
   if (!metadata.isFile() || metadata.isSymbolicLink()) throw new Error("Source must be a regular non-symbolic file");
   if (metadata.size > MAX_PLAIN_TEXT_BYTES) throw new Error("Plain-text source exceeds 10 MiB policy limit");
   const extension = extname(path).toLowerCase();
-  if (!new Set([".txt", ".md", ".markdown"]).has(extension)) throw new Error("Unsupported plain-text extension");
+  const allowed = kind === "plain" ? new Set([".txt", ".md", ".markdown"]) : new Set([".csv", ".tsv"]);
+  if (!allowed.has(extension)) throw new Error(`Unsupported ${kind === "plain" ? "plain-text" : "tabular"} extension`);
 
   const descriptor = openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
   let bytes: Buffer;
@@ -41,19 +53,27 @@ export function intakePlainText(path: string): PlainTextSource {
   rejectKnownBinary(bytes);
   const decoded = decodeSupportedUnicode(bytes);
   if (containsBinaryControls(decoded.text)) throw new Error("Binary content cannot masquerade as plain text");
+  const format = extension === ".txt" ? "txt" : extension === ".md" || extension === ".markdown" ? "markdown" : extension.slice(1) as "csv" | "tsv";
+  const tabular = kind === "tabular" ? parseTabularText(decoded.text, format as "csv" | "tsv") : undefined;
   const source = Object.freeze({
     sourceId: randomUUID(),
     text: decoded.text,
     originalHash: sha256(bytes),
     size: bytes.length,
-    format: extension === ".txt" ? "txt" : "markdown",
+    format,
+    derivativeExtension: format === "csv" || format === "tsv" ? format : "md",
     encoding: decoded.encoding,
     coverage: "complete",
     policyVersion: PLAIN_TEXT_POLICY_VERSION,
   } satisfies PlainTextSource);
   sourcePaths.set(source, path);
   authenticSources.add(source);
+  if (tabular) tabularDocuments.set(source, tabular);
   return source;
+}
+
+export function tabularDocumentFor(source: PlainTextSource): TabularDocument | undefined {
+  return tabularDocuments.get(source);
 }
 
 export function assertSessionFileCount(count: number): void {

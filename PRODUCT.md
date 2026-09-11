@@ -102,14 +102,18 @@ The encrypted project token registry gives the same normalized original the same
 
 Each dictionary records its project UUID, and that UUID participates in the dictionary snapshot hash. A dictionary, token registry, finding set or transformation from another project cannot be substituted during verification.
 
-## Plain-text v0.1 limits
+## Text and tabular v0.2 limits
 
-- TXT and Markdown only.
+- TXT, Markdown, CSV and TSV only in the currently implemented core. Later MVP formats remain pending.
 - Maximum 10 MiB per file, 100 files per session and 100 MiB total source bytes per session.
 - Only explicitly supported Unicode encodings are accepted; unreliable decoding fails closed. Except for tab and line endings, C0/C1 control characters are rejected even when sparsely embedded in otherwise valid Unicode text.
 - Extension is never the sole format signal. Binary content, unsupported formats and uncertain coverage block export.
 - Dictionary matching uses Unicode NFKC, trimmed/collapsed whitespace and a configurable Latin case rule. Aliases are explicit and fuzzy matching is disabled.
 - Exact-data dictionaries and per-file finding output have explicit resource ceilings; exceeding a ceiling fails closed instead of returning partial coverage.
+- CSV uses a fixed comma delimiter and TSV uses a fixed tab delimiter. Quoting follows the supported double-quote grammar; unterminated quotes, quotes inside unquoted fields, characters after a closing quote, lone carriage returns and inconsistent column counts fail closed.
+- Tabular scanning is cell-bounded so a detector cannot combine unrelated adjacent cells. Embedded delimiters and line endings are accepted only inside quoted fields.
+- Tabular policy limits are 100,000 rows, 1,000 columns, 1,000,000 cells and 1,000,000 UTF-16 code units per decoded cell, subject to the stricter 10 MiB file limit.
+- A non-empty cell whose first non-whitespace character is `=`, `+`, `-` or `@` is a controlled spreadsheet-formula finding. Export requires the `FORMULA_AS_LITERAL` transformation, which prefixes that character with an apostrophe in the derivative and records the event in the public finding counts.
 
 ## MVP screens
 

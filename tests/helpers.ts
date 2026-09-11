@@ -3,7 +3,8 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createDictionarySnapshot, type ProjectDictionary } from "../src/core/dictionary.js";
 import { detectText, type DetectionContext } from "../src/core/detectors.js";
-import { intakePlainText, type PlainTextSource } from "../src/core/intake.js";
+import { intakePlainText, intakeTabular, type PlainTextSource } from "../src/core/intake.js";
+import { detectSource } from "../src/core/source-scan.js";
 import { ProjectTokenRegistry } from "../src/core/token-vault.js";
 import type { EncryptedTokenMap } from "../src/core/token-vault.js";
 import { transformText } from "../src/core/transform.js";
@@ -26,13 +27,19 @@ export function writeSource(directory: string, text: string | Buffer, name = "so
   return intakePlainText(path);
 }
 
+export function writeTabularSource(directory: string, text: string | Buffer, name = "source.csv"): PlainTextSource {
+  const path = join(directory, name);
+  writeFileSync(path, text, { mode: 0o640 });
+  return intakeTabular(path);
+}
+
 export function transformAll(
   source: PlainTextSource,
   detection: DetectionContext,
   action: Action = "delete",
   projectId = detection.dictionary.projectId,
 ): { findings: Finding[]; transformation: TransformResult; registry: ProjectTokenRegistry } {
-  const findings = detectText(source.text, detection);
+  const findings = detectSource(source, detection);
   const registry = ProjectTokenRegistry.create(projectId, detection.dictionary);
   const decisions: Decision[] = findings.map((finding) => ({
     findingId: finding.findingId,

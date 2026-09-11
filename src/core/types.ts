@@ -10,7 +10,8 @@ export type FindingType =
   | "ip-address"
   | "bank-account"
   | "contract-id"
-  | "exact-data";
+  | "exact-data"
+  | "spreadsheet-formula";
 export type Action = "delete" | "tokenize" | "generalize" | "keep";
 export type Classification = "P0" | "P1" | "P2" | "P3";
 export type AllowedRoute = "cloud-approved" | "cloud-sanitized" | "local-only";

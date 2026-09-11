@@ -16,6 +16,8 @@ Version: 0.1.0 MVP
 - B3: Parser failure, encrypted input, unsupported feature or incomplete OCR coverage is visible and blocks a safe status.
 - B3a: Plain-text intake supports TXT/Markdown only, rejects files over 10 MiB, sessions over 100 files or 100 MiB aggregate source bytes, and does not rely on extension alone.
 - B3b: Unsupported encodings, binary content masquerading as text and uncertain decoding fail closed; a single disallowed C0/C1 control character is rejected even in otherwise valid Unicode text.
+- B3c: CSV/TSV parsing uses fixed format delimiters, preserves quoted delimiters and newlines, scans decoded cells independently, and rejects malformed quotes, inconsistent columns, lone carriage returns and resource-limit overflow.
+- B3d: Formula-like tabular cells cannot be kept, deleted, tokenized or generalized through an unrelated rule; the controlled literal-text transformation is visible in the public finding counts and leaves no formula prefix on second scan.
 - B4: DOCX test detects text in body, table, header/footer and comment fixtures.
 - B5: XLSX test identifies hidden sheets, hidden rows/columns, formulas, comments and external-link indicators in fixtures.
 - B6: PPTX test identifies slide text, speaker notes, comments and document-property indicators in fixtures.
@@ -73,6 +75,7 @@ Version: 0.1.0 MVP
 - F14: Source identity, size and SHA-256 are rechecked through Safe Package completion. A source changed after verification blocks packaging and leaves no ZIP, checksum or receipt created by that call.
 - F15: Verification tests the complete MVP route matrix: P0 permits approved or sanitized cloud routes, P1/P2 permit only sanitized cloud routes, and P3 never receives an export capability even when its requested route is local-only.
 - F16: A multi-file session produces one ordered derivative and source/hash manifest record per source, aggregates finding counts correctly, and binds every source to package-time integrity checks.
+- F17: CSV/TSV sources produce matching allowlisted derivative extensions, record their source format in the manifest, and are reparsed cell-by-cell during second scan before a verified export capability is issued.
 
 For v0.1, F6 means local validation against `schemas/ew-safe-package-manifest-v0.1.schema.json`. Validation by EW Enterprise Secure Knowledge Forge is pending integration and must not be claimed complete.
 
@@ -85,6 +88,7 @@ For v0.1, F6 means local validation against `schemas/ew-safe-package-manifest-v0
 - I5: Existing export targets are never overwritten; write conflicts clean up newly created package artifacts and preserve pre-existing files.
 - I6: Post-write validation and failure cleanup are bound to the exact regular files created by the export call; path replacement or symbolic-link substitution fails closed without deleting the replacement, and ZIP/checksum/receipt bytes are rechecked before completion.
 - I7: The offline dependency-policy check enforces exact direct versions, lockfile agreement, SHA-512 integrity, recorded licenses and documentation, and rejects install-script/native-build flags; the recorded baseline audit has zero known vulnerabilities.
+- I8: Independent synthetic CSV/TSV positive, negative and tamper fixtures cover sensitive-cell detection, formula neutralization, malformed/binary rejection and post-verification source mutation.
 
 ## G. Windows delivery
 

@@ -1,6 +1,7 @@
 import type { AllowedRoute, Classification, FindingType, ReasonCode, Severity } from "./types.js";
 
-export const PLAIN_TEXT_POLICY_VERSION = "ew-plaintext-policy-0.1";
+export const CONTENT_POLICY_VERSION = "ew-content-policy-0.2";
+export const PLAIN_TEXT_POLICY_VERSION = CONTENT_POLICY_VERSION;
 export const MAX_PLAIN_TEXT_BYTES = 10 * 1024 * 1024;
 export const MAX_SESSION_FILES = 100;
 export const MAX_SESSION_TOTAL_BYTES = 100 * 1024 * 1024;
@@ -15,6 +16,10 @@ export const MAX_DICTIONARY_ALIASES_PER_ENTRY = 16;
 export const MAX_DICTIONARY_TERMS = 10_000;
 export const MAX_DICTIONARY_TERM_CHARS = 256;
 export const MAX_DICTIONARY_TOTAL_CHARS = 1024 * 1024;
+export const MAX_TABULAR_ROWS = 100_000;
+export const MAX_TABULAR_COLUMNS = 1_000;
+export const MAX_TABULAR_CELLS = 1_000_000;
+export const MAX_TABULAR_CELL_CHARS = 1_000_000;
 
 export const CONTROLLED_REASON_CODES = new Set<ReasonCode>([
   "PUBLICLY_APPROVED",
@@ -34,6 +39,7 @@ export const DEFAULT_TOKEN_LABELS: Readonly<Record<FindingType, string>> = {
   "bank-account": "BANK",
   "contract-id": "CONTRACT",
   "exact-data": "ENTITY",
+  "spreadsheet-formula": "FORMULA",
 };
 
 export const ALLOWED_TOKEN_LABELS = new Set([
@@ -66,6 +72,11 @@ export const GENERALIZATION_RULES: Readonly<Record<string, GeneralizationRule>> 
     id: "COMMERCIAL_IDENTIFIER",
     findingTypes: ["bank-account", "contract-id"],
     replacement: "[COMMERCIAL IDENTIFIER]",
+  },
+  FORMULA_AS_LITERAL: {
+    id: "FORMULA_AS_LITERAL",
+    findingTypes: ["spreadsheet-formula"],
+    replacement: "'",
   },
 };
 

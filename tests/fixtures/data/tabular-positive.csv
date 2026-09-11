@@ -1,0 +1,2 @@
+name,contact,calculation
+Synthetic Person,test.person@example.com,"=SUM(1,2)"

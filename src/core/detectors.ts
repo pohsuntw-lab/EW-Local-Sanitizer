@@ -52,6 +52,13 @@ export interface DetectionContext {
   dictionary: DictionarySnapshot;
 }
 
+export interface DetectionSegment {
+  readonly value: string;
+  readonly valueStarts: readonly number[];
+  readonly valueEnds: readonly number[];
+  readonly formulaAware?: boolean;
+}
+
 interface FindingBinding { textHash: string; projectId: string; dictionaryVersion: string; dictionaryHash: string; policyVersion: string }
 const findingBindings = new WeakMap<Finding, FindingBinding>();
 
@@ -75,6 +82,44 @@ export function detectText(text: string, context: DetectionContext): Finding[] {
     }
   }
   findings.push(...detectDictionaryTerms(text, context.dictionary, MAX_FINDINGS_PER_FILE - findings.length, binding));
+  return removeOverlaps(findings);
+}
+
+export function detectTextSegments(text: string, segments: readonly DetectionSegment[], context: DetectionContext): Finding[] {
+  if (!isAuthenticDictionarySnapshot(context.dictionary)) throw new Error("Untrusted dictionary snapshot");
+  if (Buffer.byteLength(text, "utf8") > MAX_DETECTION_TEXT_BYTES) throw new Error("Detection input exceeds size policy; coverage is incomplete");
+  const binding = Object.freeze({
+    textHash: createHash("sha256").update(text, "utf8").digest("hex"),
+    projectId: context.dictionary.projectId,
+    dictionaryVersion: context.dictionary.dictionaryVersion,
+    dictionaryHash: context.dictionary.dictionaryHash,
+    policyVersion: PLAIN_TEXT_POLICY_VERSION,
+  });
+  const findings: Finding[] = [];
+  for (const segment of segments) {
+    if (segment.valueStarts.length !== segment.value.length || segment.valueEnds.length !== segment.value.length) {
+      throw new Error("Invalid tabular value-to-source mapping");
+    }
+    const local = detectText(segment.value, context);
+    for (const finding of local) {
+      if (findings.length >= MAX_FINDINGS_PER_FILE) throw new Error("Finding limit exceeded; detection coverage is incomplete");
+      const start = segment.valueStarts[finding.start];
+      const end = segment.valueEnds[finding.end - 1];
+      if (start === undefined || end === undefined) throw new Error("Invalid tabular finding mapping");
+      findings.push(makeFinding(finding.type, finding.severity, start, end, text.slice(start, end), finding.detector, binding, finding.value));
+    }
+    if (segment.formulaAware) {
+      const match = /^\s*[=+\-@]/u.exec(segment.value);
+      if (match) {
+        if (findings.length >= MAX_FINDINGS_PER_FILE) throw new Error("Finding limit exceeded; detection coverage is incomplete");
+        const localIndex = match[0].length - 1;
+        const start = segment.valueStarts[localIndex];
+        const end = segment.valueEnds[localIndex];
+        if (start === undefined || end === undefined) throw new Error("Invalid tabular formula mapping");
+        findings.push(makeFinding("spreadsheet-formula", "medium", start, end, text.slice(start, end), "tabular-formula-prefix", binding, match[0].slice(-1)));
+      }
+    }
+  }
   return removeOverlaps(findings);
 }
 
@@ -176,8 +221,8 @@ function buildNormalizedIndex(text: string, dictionary: DictionarySnapshot): { v
   return { value: values.join(""), starts, ends };
 }
 
-function makeFinding(type: FindingType, severity: Severity, start: number, end: number, value: string, detector: string, binding: FindingBinding): Finding {
-  const finding = Object.freeze({ findingId: randomUUID(), type, severity, start, end, value, maskedPreview: maskValue(value), detector });
+function makeFinding(type: FindingType, severity: Severity, start: number, end: number, value: string, detector: string, binding: FindingBinding, previewValue = value): Finding {
+  const finding = Object.freeze({ findingId: randomUUID(), type, severity, start, end, value, maskedPreview: maskValue(previewValue), detector });
   findingBindings.set(finding, binding);
   return finding;
 }

@@ -12,6 +12,7 @@ import {
   type SourceIntegrityProbe,
 } from "./intake.js";
 import { PLAIN_TEXT_POLICY_VERSION, assertSessionFindingCount, isBlockingSeverity, routeAllowed } from "./policy.js";
+import { detectDerivative } from "./source-scan.js";
 import { isAuthenticTransformation } from "./transform.js";
 import { isAuthenticTokenMapArtifactForProject, tokenMapArtifactCovers, type EncryptedTokenMap } from "./token-vault.js";
 import type { AllowedRoute, Classification, PublicFinding, TransformResult, UnresolvedItem } from "./types.js";
@@ -50,7 +51,13 @@ export interface VerifiedPackageData {
   readonly secondScanBlockingFindings: 0;
   readonly dictionary: { readonly version: string; readonly hash: string };
   readonly items: readonly {
-    readonly source: { readonly sourceId: string; readonly originalHash: string; readonly coverage: "complete" };
+    readonly source: {
+      readonly sourceId: string;
+      readonly originalHash: string;
+      readonly coverage: "complete";
+      readonly format: PlainTextSource["format"];
+      readonly derivativeExtension: PlainTextSource["derivativeExtension"];
+    };
     readonly derivative: {
       readonly sanitizedText: string;
       readonly publicFindings: readonly PublicFinding[];
@@ -154,8 +161,10 @@ export function verifyForExport(request: VerificationRequest): VerificationOutco
     unresolved.push(...item.transformation.unresolved);
     residualRisk += item.transformation.residualRisk;
     try {
-      const secondScan = detectText(item.transformation.sanitizedText, request.detection);
-      if (secondScan.some((finding) => isBlockingSeverity(finding.severity))) unresolved.push({ code: "SECOND_SCAN_BLOCKING_FINDING" });
+      const secondScan = detectDerivative(item.transformation.sanitizedText, item.source.format, request.detection);
+      if (secondScan.some((finding) => isBlockingSeverity(finding.severity) || finding.type === "spreadsheet-formula")) {
+        unresolved.push({ code: "SECOND_SCAN_BLOCKING_FINDING" });
+      }
       scanPublicReportFields(item.transformation.publicFindings, request.detection, unresolved);
     } catch {
       unresolved.push({ code: "SECOND_SCAN_FAILED" });
@@ -264,7 +273,13 @@ function assertSourceProbesMatch(probes: readonly SourceIntegrityProbe[]): void 
 
 function snapshotPackageData(payload: VerifiedPayload): VerifiedPackageData {
   const items = payload.items.map((item) => Object.freeze({
-    source: Object.freeze({ sourceId: item.source.sourceId, originalHash: item.source.originalHash, coverage: "complete" as const }),
+    source: Object.freeze({
+      sourceId: item.source.sourceId,
+      originalHash: item.source.originalHash,
+      coverage: "complete" as const,
+      format: item.source.format,
+      derivativeExtension: item.source.derivativeExtension,
+    }),
     derivative: Object.freeze({
       sanitizedText: item.transformation.sanitizedText,
       publicFindings: Object.freeze(item.transformation.publicFindings.map((finding) => Object.freeze({ ...finding }))),
