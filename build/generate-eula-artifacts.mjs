@@ -132,7 +132,7 @@ export async function generateEulaArtifacts(root = projectRoot) {
   let commonVersion;
   for (const locale of eulaLocales) {
     const relativePath = `eula/${locale}.md`;
-    const source = await readFile(path.join(root, relativePath), "utf8");
+    const source = (await readFile(path.join(root, relativePath), "utf8")).replace(/\r\n?/gu, "\n");
     const { metadata, body } = parseFrontMatter(source, relativePath);
     if (metadata.format !== "ewls-eula" || metadata.formatVersion !== "1.0" || metadata.locale !== locale) throw new Error(`Unsupported EULA metadata: ${relativePath}`);
     if (!/^EWLS-EULA-[0-9]+\.[0-9]+$/u.test(metadata.agreementVersion ?? "")) throw new Error(`Invalid EULA version: ${relativePath}`);

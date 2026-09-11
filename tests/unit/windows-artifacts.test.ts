@@ -88,9 +88,9 @@ test("Windows builder config cannot publish or silently sign", () => {
   assert.match(eulaManifest.agreementVersion, /^EWLS-EULA-[0-9]+\.[0-9]+$/);
   assert.deepEqual(eulaManifest.agreements.map(({ locale }) => locale), ["zh-TW", "en-US"]);
   for (const agreement of eulaManifest.agreements) {
-    const source = readFileSync(join(process.cwd(), agreement.sourcePath));
+    const source = readFileSync(join(process.cwd(), agreement.sourcePath), "utf8").replace(/\r\n?/gu, "\n");
     const plainText = readFileSync(join(process.cwd(), agreement.plainTextPath), "utf8");
-    assert.equal(agreement.sha256, createHash("sha256").update(source).digest("hex"));
+    assert.equal(agreement.sha256, createHash("sha256").update(source, "utf8").digest("hex"));
     assert.match(plainText, /具象職人股份有限公司|Embodied Worker Co\., Ltd\./);
     assert.match(plainText, /第三方元件|Third-party and open-source components/);
     assert.match(plainText, /不保證完全偵測|does not guarantee perfect detection/);
