@@ -65,6 +65,7 @@ export type UnresolvedCode =
   | "SECOND_SCAN_FAILED"
   | "SECOND_SCAN_BLOCKING_FINDING"
   | "P3_LOCAL_ONLY"
+  | "ROUTE_NOT_ALLOWED"
   | "SOURCE_HASH_CHANGED"
   | "ZIP_INSPECTION_FAILED"
   | "HUMAN_CONFIRMATION_REQUIRED";
@@ -76,9 +77,10 @@ export interface UnresolvedItem {
 
 export interface TransformResult {
   sanitizedText: string;
-  publicFindings: PublicFinding[];
-  tokenEntries: TokenEntry[];
-  unresolved: UnresolvedItem[];
+  sourceTextHash: string;
+  publicFindings: readonly PublicFinding[];
+  tokenEntries: readonly TokenEntry[];
+  unresolved: readonly UnresolvedItem[];
   residualRisk: number;
   policyVersion: string;
   dictionaryVersion: string;

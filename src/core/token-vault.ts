@@ -14,6 +14,7 @@ export class ProjectTokenRegistry {
   readonly #scopeSecret: Buffer;
   readonly #normalization: NormalizationPolicy;
   readonly #entries = new Map<string, TokenEntry>();
+  #disposed = false;
 
   private constructor(scopeSecret: Buffer, normalization: NormalizationPolicy, entries: TokenEntry[]) {
     if (scopeSecret.length !== 32) throw new Error("Invalid project scope secret");
@@ -37,20 +38,23 @@ export class ProjectTokenRegistry {
   }
 
   tokenFor(original: string, findingType: FindingType, label: string): TokenEntry {
+    this.#assertActive();
     const normalizedOriginal = normalizeSensitiveValue(original, this.#normalization);
     const existing = this.#entries.get(normalizedOriginal);
     if (existing) return { ...existing };
-    const identifier = createHmac("sha256", this.#scopeSecret).update(normalizedOriginal).digest("base64url").slice(0, 12).toUpperCase();
+    const identifier = createHmac("sha256", this.#scopeSecret).update(normalizedOriginal).digest("base64url").slice(0, 20).toUpperCase();
     const entry = { token: `【${label}-${identifier}】`, original, normalizedOriginal, findingType };
     this.#entries.set(normalizedOriginal, entry);
     return { ...entry };
   }
 
   entries(): TokenEntry[] {
+    this.#assertActive();
     return [...this.#entries.values()].map((entry) => ({ ...entry }));
   }
 
   serialize(): SerializedRegistry {
+    this.#assertActive();
     return {
       schema: "ewmap-registry-1",
       project_scope_secret: this.#scopeSecret.toString("base64"),
@@ -62,6 +66,11 @@ export class ProjectTokenRegistry {
   dispose(): void {
     this.#scopeSecret.fill(0);
     this.#entries.clear();
+    this.#disposed = true;
+  }
+
+  #assertActive(): void {
+    if (this.#disposed) throw new Error("Project token registry has been disposed");
   }
 }
 

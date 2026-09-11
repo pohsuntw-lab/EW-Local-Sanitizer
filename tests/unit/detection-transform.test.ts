@@ -25,6 +25,31 @@ test("detects synthetic credentials, checksum-aware PII, commercial IDs and norm
   assert.notEqual(detectText(text, context)[0]?.findingId, findings[0]?.findingId);
 });
 
+test("NFKC grapheme normalization matches combining aliases and critical findings win overlaps", () => {
+  const context = dictionary(["Café Project", "prefix password=synthetic-password-123"]);
+  const text = "Cafe\u0301   Project\nprefix password=synthetic-password-123";
+  const findings = detectText(text, context);
+  assert.ok(findings.some((finding) => finding.type === "exact-data" && finding.value.includes("Cafe")));
+  assert.ok(findings.some((finding) => finding.type === "credential" && finding.severity === "critical"));
+  assert.equal(findings.filter((finding) => finding.value.includes("password")).some((finding) => finding.type === "exact-data"), false);
+});
+
+test("classifies synthetic private keys, standalone tokens, passwords and connection strings as critical", () => {
+  const context = dictionary([]);
+  const text = [
+    "-----BEGIN PRIVATE KEY-----\nU1lOVEhFVElDLU5PVC1BLVktFWQ==\n-----END PRIVATE KEY-----",
+    "sk-SYNTHETICOPENAITOKEN1234567890",
+    "ghp_SYNTHETICGITHUBTOKEN1234567890",
+    "password=synthetic-password-123",
+    "Server=synthetic-db;Password=synthetic-connection-secret;",
+  ].join("\n");
+  const findings = detectText(text, context);
+  assert.ok(findings.some((finding) => finding.type === "private-key"));
+  assert.ok(findings.filter((finding) => finding.type === "api-token").length >= 2);
+  assert.ok(findings.filter((finding) => finding.type === "credential").length >= 2);
+  assert.equal(findings.every((finding) => finding.severity === "critical"), true);
+});
+
 test("encrypts dictionary and token registry with versioned authenticated headers", () => {
   const projectDictionary: ProjectDictionary = {
     formatVersion: "ewdict-1", dictionaryVersion: "v1", latinCaseSensitive: false,
@@ -55,6 +80,8 @@ test("stable tokens are unlinkable across project scope secrets", () => {
   const one = ProjectTokenRegistry.create({ latinCaseSensitive: false });
   const two = ProjectTokenRegistry.create({ latinCaseSensitive: false });
   assert.notEqual(one.tokenFor("Same Synthetic Value", "exact-data", "ENTITY").token, two.tokenFor("Same Synthetic Value", "exact-data", "ENTITY").token);
+  one.dispose();
+  assert.throws(() => one.tokenFor("Another Value", "exact-data", "ENTITY"), /disposed/);
 });
 
 test("optional local session persistence is authenticated and does not expose review detail in plaintext", () => {
@@ -85,4 +112,5 @@ test("forces secret deletion and rejects reason, token-label and generalization 
   assert.throws(() => transformText(emailText, [email], [{ findingId: email.findingId, action: "tokenize", tokenLabel: "EMAIL-sk-SYNTHETICSECRET123456789" }], { dictionary: context.dictionary, tokenRegistry: registry }), /approved/);
   assert.throws(() => transformText(emailText, [email], [{ findingId: email.findingId, action: "keep", reasonCode: "test.person@example.com" as ReasonCode }], { dictionary: context.dictionary, tokenRegistry: registry }), /reason code/);
   assert.throws(() => transformText(emailText, [email], [{ findingId: email.findingId, action: "generalize", generalizationRuleId: "test.person@example.com" }], { dictionary: context.dictionary, tokenRegistry: registry }), /approved rule/);
+  assert.throws(() => transformText(emailText, [email], [{ findingId: email.findingId, action: "delete", reasonCode: "PUBLICLY_APPROVED" }], { dictionary: context.dictionary, tokenRegistry: registry }), /only valid for keep/);
 });

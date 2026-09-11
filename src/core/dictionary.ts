@@ -21,6 +21,8 @@ export interface DictionarySnapshot extends NormalizationPolicy {
   normalizedTerms: readonly string[];
 }
 
+const authenticSnapshots = new WeakSet<DictionarySnapshot>();
+
 export function createDictionarySnapshot(dictionary: ProjectDictionary): DictionarySnapshot {
   validateDictionary(dictionary);
   const normalization = { latinCaseSensitive: dictionary.latinCaseSensitive };
@@ -32,13 +34,19 @@ export function createDictionarySnapshot(dictionary: ProjectDictionary): Diction
     latinCaseSensitive: dictionary.latinCaseSensitive,
     normalizedTerms,
   });
-  return Object.freeze({
+  const snapshot = Object.freeze({
     formatVersion: "ewdict-1",
     dictionaryVersion: dictionary.dictionaryVersion,
     dictionaryHash: createHash("sha256").update(canonical).digest("hex"),
     latinCaseSensitive: dictionary.latinCaseSensitive,
     normalizedTerms: Object.freeze(normalizedTerms),
   });
+  authenticSnapshots.add(snapshot);
+  return snapshot;
+}
+
+export function isAuthenticDictionarySnapshot(snapshot: DictionarySnapshot): boolean {
+  return authenticSnapshots.has(snapshot);
 }
 
 export function encryptProjectDictionary(dictionary: ProjectDictionary, passphrase: string): Buffer {

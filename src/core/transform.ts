@@ -1,4 +1,5 @@
-import type { DictionarySnapshot } from "./dictionary.js";
+import { createHash } from "node:crypto";
+import { isAuthenticDictionarySnapshot, type DictionarySnapshot } from "./dictionary.js";
 import {
   CONTROLLED_REASON_CODES,
   DEFAULT_TOKEN_LABELS,
@@ -19,6 +20,7 @@ export interface TransformContext {
 }
 
 export function transformText(text: string, findings: Finding[], decisions: Decision[], context: TransformContext): TransformResult {
+  if (!isAuthenticDictionarySnapshot(context.dictionary)) throw new Error("Untrusted dictionary snapshot");
   validateFindingRanges(text, findings);
   const decisionMap = new Map(decisions.map((decision) => [decision.findingId, decision]));
   if (decisionMap.size !== decisions.length) throw new Error("Duplicate finding decision");
@@ -63,8 +65,9 @@ export function transformText(text: string, findings: Finding[], decisions: Deci
     });
   }
   output += text.slice(cursor);
-  const result = {
+  const result: TransformResult = Object.freeze({
     sanitizedText: output,
+    sourceTextHash: createHash("sha256").update(text, "utf8").digest("hex"),
     publicFindings: Object.freeze(publicFindings.map((finding) => Object.freeze({ ...finding }))),
     tokenEntries: Object.freeze(tokenEntries.map((entry) => Object.freeze({ ...entry }))),
     unresolved: Object.freeze(unresolved.map((item) => Object.freeze({ ...item }))),
@@ -72,8 +75,7 @@ export function transformText(text: string, findings: Finding[], decisions: Deci
     policyVersion: PLAIN_TEXT_POLICY_VERSION,
     dictionaryVersion: context.dictionary.dictionaryVersion,
     dictionaryHash: context.dictionary.dictionaryHash,
-  } as unknown as TransformResult;
-  Object.freeze(result);
+  });
   authenticTransformations.add(result);
   return result;
 }
@@ -99,6 +101,9 @@ function applyDecision(finding: Finding, decision: Decision, context: TransformC
 function validateDecision(decision: Decision, finding: Finding): void {
   if (decision.localReasonDetail !== undefined && typeof decision.localReasonDetail !== "string") throw new Error("Invalid local reason detail");
   if (decision.reasonCode !== undefined && !CONTROLLED_REASON_CODES.has(decision.reasonCode)) throw new Error("Invalid reason code");
+  if (decision.action !== "keep" && (decision.reasonCode !== undefined || decision.localReasonDetail !== undefined)) {
+    throw new Error("Review reasons are only valid for keep decisions");
+  }
   if (decision.action === "keep" && isBlockingSeverity(finding.severity) && !decision.reasonCode) {
     throw new Error("High/critical keep requires a controlled reason code");
   }

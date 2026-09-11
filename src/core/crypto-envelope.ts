@@ -1,6 +1,8 @@
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "node:crypto";
 
 export const SCRYPT_PARAMETERS = Object.freeze({ N: 16_384, r: 8, p: 1, keyLength: 32, maxmem: 64 * 1024 * 1024 });
+const MAX_ENCRYPTED_ARTIFACT_BYTES = 64 * 1024 * 1024;
+const MAX_ENCRYPTED_PLAINTEXT_BYTES = 40 * 1024 * 1024;
 
 export interface EncryptedEnvelope {
   format_version: "1";
@@ -23,25 +25,18 @@ export function encryptEnvelope(contentType: EncryptedEnvelope["content_type"], 
   try {
     key = scryptSync(passphrase, salt, SCRYPT_PARAMETERS.keyLength, SCRYPT_PARAMETERS);
     plaintext = Buffer.from(JSON.stringify(value), "utf8");
+    if (plaintext.length > MAX_ENCRYPTED_PLAINTEXT_BYTES) throw new Error("Encrypted local artifact plaintext exceeds size policy");
     const cipher = createCipheriv("aes-256-gcm", key, iv);
+    const header = envelopeHeader(contentType, salt, iv);
+    cipher.setAAD(Buffer.from(JSON.stringify(header), "utf8"));
     const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
-    return Buffer.from(JSON.stringify({
-      format_version: "1",
-      content_type: contentType,
-      kdf: "scrypt",
-      scrypt: {
-        N: SCRYPT_PARAMETERS.N,
-        r: SCRYPT_PARAMETERS.r,
-        p: SCRYPT_PARAMETERS.p,
-        key_length: SCRYPT_PARAMETERS.keyLength,
-        maxmem: SCRYPT_PARAMETERS.maxmem,
-      },
-      cipher: "aes-256-gcm",
-      salt: salt.toString("base64"),
-      iv: iv.toString("base64"),
+    const output = Buffer.from(JSON.stringify({
+      ...header,
       authentication_tag: cipher.getAuthTag().toString("base64"),
       ciphertext: ciphertext.toString("base64"),
     } satisfies EncryptedEnvelope), "utf8");
+    if (output.length > MAX_ENCRYPTED_ARTIFACT_BYTES) throw new Error("Encrypted local artifact exceeds size policy");
+    return output;
   } finally {
     plaintext?.fill(0);
     key?.fill(0);
@@ -49,6 +44,8 @@ export function encryptEnvelope(contentType: EncryptedEnvelope["content_type"], 
 }
 
 export function decryptEnvelope(payloadBuffer: Buffer, expectedType: EncryptedEnvelope["content_type"], passphrase: string): unknown {
+  if (payloadBuffer.length > MAX_ENCRYPTED_ARTIFACT_BYTES) throw new Error("Encrypted local artifact exceeds size policy");
+  if (passphrase.length < 12) throw new Error("Passphrase must contain at least 12 characters");
   const envelope = parseEnvelope(payloadBuffer, expectedType);
   let key: Buffer | undefined;
   let plaintext: Buffer | undefined;
@@ -64,6 +61,7 @@ export function decryptEnvelope(payloadBuffer: Buffer, expectedType: EncryptedEn
       maxmem: envelope.scrypt.maxmem,
     });
     const decipher = createDecipheriv("aes-256-gcm", key, iv);
+    decipher.setAAD(Buffer.from(JSON.stringify(envelopeHeader(expectedType, salt, iv)), "utf8"));
     decipher.setAuthTag(tag);
     plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
     return JSON.parse(plaintext.toString("utf8")) as unknown;
@@ -71,6 +69,24 @@ export function decryptEnvelope(payloadBuffer: Buffer, expectedType: EncryptedEn
     plaintext?.fill(0);
     key?.fill(0);
   }
+}
+
+function envelopeHeader(contentType: EncryptedEnvelope["content_type"], salt: Buffer, iv: Buffer): Omit<EncryptedEnvelope, "authentication_tag" | "ciphertext"> {
+  return {
+    format_version: "1",
+    content_type: contentType,
+    kdf: "scrypt",
+    scrypt: {
+      N: SCRYPT_PARAMETERS.N,
+      r: SCRYPT_PARAMETERS.r,
+      p: SCRYPT_PARAMETERS.p,
+      key_length: SCRYPT_PARAMETERS.keyLength,
+      maxmem: SCRYPT_PARAMETERS.maxmem,
+    },
+    cipher: "aes-256-gcm",
+    salt: salt.toString("base64"),
+    iv: iv.toString("base64"),
+  };
 }
 
 function parseEnvelope(buffer: Buffer, expectedType: EncryptedEnvelope["content_type"]): EncryptedEnvelope {

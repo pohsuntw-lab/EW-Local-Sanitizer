@@ -47,7 +47,7 @@ export function inspectStoreZip(buffer: Buffer, allowlist: ReadonlySet<string>):
   const centralOffset = readUInt32(buffer, endOffset + 16);
   const commentLength = readUInt16(buffer, endOffset + 20);
   if (diskNumber !== 0 || centralDisk !== 0 || diskCount !== count) throw new Error("Multi-disk ZIP is unsupported");
-  if (endOffset + 22 + commentLength !== buffer.length) throw new Error("ZIP contains trailing or malformed data");
+  if (commentLength !== 0 || endOffset + 22 !== buffer.length) throw new Error("ZIP contains a comment, trailing or malformed data");
   if (centralOffset + centralSize !== endOffset) throw new Error("Invalid ZIP central directory bounds");
   const localEntries: Array<InspectedZipEntry & { offset: number }> = [];
   const localNames = new Set<string>();
@@ -62,12 +62,12 @@ export function inspectStoreZip(buffer: Buffer, allowlist: ReadonlySet<string>):
     const expectedCrc = readUInt32(buffer, offset + 14);
     const nameLength = readUInt16(buffer, offset + 26);
     const extraLength = readUInt16(buffer, offset + 28);
-    if (flags !== 0x0800 || method !== 0 || compressedSize !== size) throw new Error("Unsupported ZIP encoding or compression");
+    if (flags !== 0x0800 || method !== 0 || compressedSize !== size || extraLength !== 0) throw new Error("Unsupported ZIP encoding, compression or hidden extra data");
     const nameStart = offset + 30;
     const dataStart = nameStart + nameLength + extraLength;
     const dataEnd = dataStart + size;
     if (dataEnd > centralOffset) throw new Error("ZIP entry exceeds local data bounds");
-    const name = buffer.subarray(nameStart, nameStart + nameLength).toString("utf8");
+    const name = decodeZipName(buffer.subarray(nameStart, nameStart + nameLength));
     validateAllowedEntry(name, size, allowlist, localNames);
     const data = buffer.subarray(dataStart, dataEnd);
     if (crc32(data) !== expectedCrc) throw new Error(`ZIP CRC mismatch: ${name}`);
@@ -88,12 +88,15 @@ export function inspectStoreZip(buffer: Buffer, allowlist: ReadonlySet<string>):
     const nameLength = readUInt16(buffer, centralCursor + 28);
     const extraLength = readUInt16(buffer, centralCursor + 30);
     const commentLength = readUInt16(buffer, centralCursor + 32);
+    const diskStart = readUInt16(buffer, centralCursor + 34);
     const localOffset = readUInt32(buffer, centralCursor + 42);
     const nameStart = centralCursor + 46;
     const next = nameStart + nameLength + extraLength + commentLength;
     if (next > endOffset) throw new Error("ZIP central entry exceeds bounds");
-    const name = buffer.subarray(nameStart, nameStart + nameLength).toString("utf8");
-    if (flags !== 0x0800 || method !== 0 || compressedSize !== size) throw new Error("Unsupported central ZIP encoding or compression");
+    const name = decodeZipName(buffer.subarray(nameStart, nameStart + nameLength));
+    if (flags !== 0x0800 || method !== 0 || compressedSize !== size || extraLength !== 0 || commentLength !== 0 || diskStart !== 0) {
+      throw new Error("Unsupported central ZIP encoding, compression or hidden data");
+    }
     validateAllowedEntry(name, size, allowlist, centralNames);
     const local = localEntries[index];
     if (!local || local.name !== name || local.size !== size || local.offset !== localOffset || crc32(local.data) !== expectedCrc) throw new Error("ZIP local and central entries disagree");
@@ -114,10 +117,19 @@ function validateAllowedEntry(name: string, size: number, allowlist: ReadonlySet
 
 function validateEntry(name: string, size: number): void {
   const segments = name.split("/");
-  if (!name || name.startsWith("/") || name.includes("\\") || name.includes("\0") || segments.includes("..") || segments.some((segment) => segment.startsWith("."))) {
+  if (!name || name.startsWith("/") || /^[A-Za-z]:/.test(name) || name.includes("\\") || /[\u0000-\u001f\u007f]/u.test(name) ||
+    segments.includes("..") || segments.some((segment) => !segment || segment.startsWith("."))) {
     throw new Error(`Unsafe ZIP entry: ${name}`);
   }
   if (size < 0 || size > MAX_ZIP_ENTRY_BYTES) throw new Error(`ZIP entry exceeds size policy: ${name}`);
+}
+
+function decodeZipName(value: Buffer): string {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(value);
+  } catch {
+    throw new Error("ZIP entry name is not valid UTF-8");
+  }
 }
 
 function findEndRecord(buffer: Buffer): number {

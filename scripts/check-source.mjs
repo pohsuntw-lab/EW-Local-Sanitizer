@@ -6,6 +6,9 @@ const forbidden = [
   /\bhttps?:\/\//,
   /\bfetch\s*\(/,
   /from\s+["'](?:node:)?(?:http|https|net|tls|dgram)["']/,
+  /(?:from|import\s*\()\s*["'](?:node:)?(?:dns|http|https|net|tls|dgram|child_process|undici)["']/,
+  /require\s*\(\s*["'](?:node:)?(?:dns|http|https|net|tls|dgram|child_process|undici)["']\s*\)/,
+  /\b(?:WebSocket|XMLHttpRequest|EventSource)\b/,
   /\b(?:axios|telemetry|analytics|sentry)\b/i,
 ];
 const violations = [];

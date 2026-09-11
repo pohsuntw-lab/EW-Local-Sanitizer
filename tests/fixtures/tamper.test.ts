@@ -12,4 +12,7 @@ test("tamper fixture matrix rejects authenticated-map ciphertext and KDF header 
   const headerTamper = JSON.parse(encrypted.toString("utf8"));
   headerTamper.scrypt.N = 2;
   assert.throws(() => decryptTokenMap(Buffer.from(JSON.stringify(headerTamper)), "correct horse battery staple"), /unsafe encrypted envelope/);
+  const authenticatedHeaderTamper = JSON.parse(encrypted.toString("utf8"));
+  authenticatedHeaderTamper.salt = Buffer.alloc(16, 7).toString("base64");
+  assert.throws(() => decryptTokenMap(Buffer.from(JSON.stringify(authenticatedHeaderTamper)), "correct horse battery staple"));
 });

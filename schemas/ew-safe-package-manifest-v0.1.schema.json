@@ -16,8 +16,8 @@
     "tool_version": { "const": "0.1.0" },
     "project_id": { "$ref": "#/$defs/uuid" },
     "package_id": { "$ref": "#/$defs/uuid" },
-    "created_at": { "type": "string", "format": "date-time" },
-    "policy_version": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "created_at": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{3})?Z$" },
+    "policy_version": { "const": "ew-plaintext-policy-0.1" },
     "dictionary": {
       "type": "object", "additionalProperties": false, "required": ["version", "sha256"],
       "properties": { "version": { "type": "string", "minLength": 1 }, "sha256": { "$ref": "#/$defs/sha256" } }
@@ -60,7 +60,22 @@
       }
     },
     "token_map_created": { "type": "boolean" },
-    "package_allowlist": { "type": "array", "minItems": 4, "uniqueItems": true, "items": { "type": "string" } },
+    "package_allowlist": {
+      "type": "array", "minItems": 4, "maxItems": 103, "uniqueItems": true,
+      "items": {
+        "anyOf": [
+          { "type": "string", "pattern": "^SAFE_SOURCE/source-[0-9]{3}\\.md$" },
+          { "const": "SAFE-MANIFEST.json" },
+          { "const": "DLP-REPORT.json" },
+          { "const": "README-SAFE-UPLOAD.md" }
+        ]
+      },
+      "allOf": [
+        { "contains": { "const": "SAFE-MANIFEST.json" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "const": "DLP-REPORT.json" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "const": "README-SAFE-UPLOAD.md" }, "minContains": 1, "maxContains": 1 }
+      ]
+    },
     "package_hash": {
       "type": "object", "additionalProperties": false, "required": ["method", "location"],
       "properties": { "method": { "const": "sha256" }, "location": { "const": "external-sibling-and-local-receipt" } }

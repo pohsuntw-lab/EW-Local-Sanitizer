@@ -10,7 +10,7 @@ import { createSafePackage } from "../../src/core/safe-package.js";
 import { ProjectTokenRegistry } from "../../src/core/token-vault.js";
 import { transformText } from "../../src/core/transform.js";
 import type { ReasonCode } from "../../src/core/types.js";
-import { verifyForExport, type VerifiedExport } from "../../src/core/verification.js";
+import { verifiedPayloadForPackaging, verifyForExport, type VerifiedExport } from "../../src/core/verification.js";
 import { inspectStoreZip, writeStoreZip } from "../../src/core/zip.js";
 import { dictionary, transformAll, verificationRequest, writeSource } from "../helpers.js";
 
@@ -34,6 +34,19 @@ test("blocks export bypass, unresolved findings, high keep, P3 and missing P2 co
   assert.equal(verifyForExport({ ...verificationRequest(source, deleted, detection), classification: "P3", allowedRoute: "local-only" }).status, "blocked");
   assert.equal(verifyForExport({ ...verificationRequest(source, deleted, detection), humanConfirmed: false }).status, "blocked");
   assert.throws(() => createSafePackage({ verifiedPayloadForPackaging: () => ({}) } as unknown as VerifiedExport, join(directory, "bypass-SAFE-PACKAGE.zip")), /Unverified export capability/);
+});
+
+test("binds authentic transformations to their source text and rejects forged dictionary snapshots", () => {
+  const directory = mkdtempSync(join(tmpdir(), "ew-verify-binding-"));
+  const detection = dictionary([]);
+  const first = writeSource(directory, "First neutral source.", "first.txt");
+  const second = writeSource(directory, "Second neutral source.", "second.txt");
+  const { transformation } = transformAll(first, detection);
+  const mismatch = verifyForExport(verificationRequest(second, transformation, detection));
+  assert.equal(mismatch.status, "blocked");
+  if (mismatch.status === "blocked") assert.ok(mismatch.unresolved.some((item) => item.code === "TRANSFORMATION_FAILED"));
+  const forgedDetection = { dictionary: { ...detection.dictionary, normalizedTerms: [] } };
+  assert.throws(() => detectText("neutral", forgedDetection), /Untrusted dictionary snapshot/);
 });
 
 test("binds the same dictionary to second scan and blocks report-field injection", () => {
@@ -91,17 +104,40 @@ test("writes allowlisted package, validates actual ZIP SHA-256 and excludes loca
   const outcome = verifyForExport(verificationRequest(source, transformed, detection));
   assert.equal(outcome.status, "verified");
   if (outcome.status !== "verified") return;
+  const packagingData = JSON.stringify(verifiedPayloadForPackaging(outcome.capability));
+  assert.equal(packagingData.includes("test.person@example.com"), false);
+  assert.equal(packagingData.includes("Example Foundry"), false);
+  assert.equal(packagingData.includes("normalizedTerms"), false);
   const output = join(directory, "synthetic-SAFE-PACKAGE.zip");
   const result = createSafePackage(outcome.capability, output);
   const archive = readFileSync(output);
   assert.equal(result.packageHash, createHash("sha256").update(archive).digest("hex"));
   assert.match(readFileSync(result.checksumPath, "utf8"), new RegExp(`^${result.packageHash}  synthetic-SAFE-PACKAGE\\.zip`));
   const allowlist = new Set(["SAFE_SOURCE/source-001.md", "SAFE-MANIFEST.json", "DLP-REPORT.json", "README-SAFE-UPLOAD.md"]);
-  assert.deepEqual(inspectStoreZip(archive, allowlist).map((entry) => entry.name), [...allowlist]);
+  const inspected = inspectStoreZip(archive, allowlist);
+  assert.deepEqual(inspected.map((entry) => entry.name), [...allowlist]);
+  const manifestEntry = inspected.find((entry) => entry.name === "SAFE-MANIFEST.json");
+  assert.ok(manifestEntry);
+  const inconsistentManifest = JSON.parse(manifestEntry.data.toString("utf8"));
+  inconsistentManifest.classification = "P1";
+  inconsistentManifest.allowed_route = "cloud-approved";
+  assert.throws(() => assertValidManifest(inconsistentManifest), /processing route/);
   assert.equal(archive.includes(Buffer.from("test.person@example.com")), false);
   assert.equal(archive.includes(Buffer.from("Example Foundry")), false);
   assert.equal(archive.includes(Buffer.from(".ewmap")), true);
   assert.equal([...allowlist].some((name) => name.endsWith(".ewmap") || name.endsWith(".sha256")), false);
+});
+
+test("scans the complete serialized public report before packaging", () => {
+  const directory = mkdtempSync(join(tmpdir(), "ew-package-report-scan-"));
+  const detection = dictionary(["ew-dlp-report-0.1"]);
+  const source = writeSource(directory, "Neutral synthetic text.");
+  const { transformation } = transformAll(source, detection);
+  const outcome = verifyForExport({ ...verificationRequest(source, transformation, detection), classification: "P0", allowedRoute: "cloud-approved" });
+  assert.equal(outcome.status, "verified");
+  if (outcome.status === "verified") {
+    assert.throws(() => createSafePackage(outcome.capability, join(directory, "report-SAFE-PACKAGE.zip")), /Public output second scan/);
+  }
 });
 
 test("ZIP writer and post-write inspector reject duplicate, traversal, hidden, oversized and tampered entries", () => {
@@ -109,6 +145,7 @@ test("ZIP writer and post-write inspector reject duplicate, traversal, hidden, o
   assert.throws(() => writeStoreZip(join(directory, "duplicate.zip"), [{ name: "SAFE-MANIFEST.json", data: Buffer.from("a") }, { name: "SAFE-MANIFEST.json", data: Buffer.from("b") }]), /Duplicate/);
   assert.throws(() => writeStoreZip(join(directory, "traversal.zip"), [{ name: "../secret", data: Buffer.from("a") }]), /Unsafe/);
   assert.throws(() => writeStoreZip(join(directory, "hidden.zip"), [{ name: "SAFE_SOURCE/.secret", data: Buffer.from("a") }]), /Unsafe/);
+  assert.throws(() => writeStoreZip(join(directory, "drive.zip"), [{ name: "C:/secret", data: Buffer.from("a") }]), /Unsafe/);
   assert.throws(() => writeStoreZip(join(directory, "large.zip"), [{ name: "SAFE_SOURCE/source-001.md", data: Buffer.alloc(16 * 1024 * 1024 + 1) }]), /size policy/);
   const path = join(directory, "valid.zip");
   writeStoreZip(path, [{ name: "SAFE-MANIFEST.json", data: Buffer.from("safe") }]);
@@ -118,6 +155,12 @@ test("ZIP writer and post-write inspector reject duplicate, traversal, hidden, o
   assert.throws(() => inspectStoreZip(tampered, new Set(["SAFE-MANIFEST.json"])), /CRC/);
   assert.throws(() => inspectStoreZip(readFileSync(path), new Set(["SAFE-MANIFEST.json", "DLP-REPORT.json"])), /allowlist/);
   assert.throws(() => inspectStoreZip(Buffer.concat([readFileSync(path), Buffer.from("hidden trailing bytes")]), new Set(["SAFE-MANIFEST.json"])), /trailing/);
+  const comment = Buffer.concat([readFileSync(path), Buffer.from("secret")]);
+  comment.writeUInt16LE(6, readFileSync(path).length - 2);
+  assert.throws(() => inspectStoreZip(comment, new Set(["SAFE-MANIFEST.json"])), /comment/);
+  const hiddenExtra = Buffer.from(readFileSync(path));
+  hiddenExtra.writeUInt16LE(1, 28);
+  assert.throws(() => inspectStoreZip(hiddenExtra, new Set(["SAFE-MANIFEST.json"])), /hidden extra data/);
 
   const duplicatePath = join(directory, "postwrite-duplicate.zip");
   writeStoreZip(duplicatePath, [{ name: "SAFE-A", data: Buffer.from("a") }, { name: "SAFE-B", data: Buffer.from("b") }]);

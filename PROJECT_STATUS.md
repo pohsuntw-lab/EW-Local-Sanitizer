@@ -9,4 +9,4 @@
 
 ## Next action
 
-Review the phase 0 and phase 1 branch. Current evidence: lint, typecheck and build pass; 16 core/security tests and 3 independent positive/negative/tamper fixture tests pass. The branch covers read-only TXT/Markdown intake, policy-bound detection/transformation/verification, encrypted project dictionary and token registry, authenticated `.ewmap`, local manifest-schema validation, ZIP post-write inspection and actual ZIP checksums. CSV, Office, PDF, OCR, Electron and Windows packaging remain explicitly out of scope and unimplemented.
+Review the phase 0 and phase 1 branch. Current evidence: lint, typecheck and build pass; 20 core/security tests and 3 independent positive/negative/tamper fixture tests pass. A follow-up security review removed public verified-capability issuance, bound transformations to source text, authenticated dictionary snapshots, prioritized critical overlap findings, minimized verified payload data, authenticated encrypted headers, strengthened manifest semantics and rejected hidden ZIP extra/comment data. CSV, Office, PDF, OCR, Electron and Windows packaging remain explicitly out of scope and unimplemented.

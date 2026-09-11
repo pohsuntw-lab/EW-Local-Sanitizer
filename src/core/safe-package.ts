@@ -3,7 +3,7 @@ import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
 import { assertValidManifest } from "./manifest.js";
 import type { PublicFinding } from "./types.js";
-import { verifiedPayloadForPackaging, type VerifiedExport } from "./verification.js";
+import { assertVerifiedPublicOutput, verifiedPayloadForPackaging, type VerifiedExport } from "./verification.js";
 import { inspectStoreZip, writeStoreZip, type ZipEntry } from "./zip.js";
 
 export interface SafePackageResult {
@@ -20,7 +20,7 @@ export function createSafePackage(capability: VerifiedExport, outputPath: string
   const receiptPath = `${outputPath}.receipt.json`;
   const derivativeEntries: ZipEntry[] = verified.items.map((item, index) => ({
     name: `SAFE_SOURCE/source-${String(index + 1).padStart(3, "0")}.md`,
-    data: Buffer.from(item.transformation.sanitizedText, "utf8"),
+    data: Buffer.from(item.derivative.sanitizedText, "utf8"),
   }));
   const allowlist = new Set([
     ...derivativeEntries.map((entry) => entry.name),
@@ -29,8 +29,8 @@ export function createSafePackage(capability: VerifiedExport, outputPath: string
     "README-SAFE-UPLOAD.md",
   ]);
   const derivativeHashes = derivativeEntries.map((entry) => sha256(entry.data));
-  const allFindings = verified.items.flatMap((item) => item.transformation.publicFindings);
-  const residualRisk = verified.items.reduce((sum, item) => sum + item.transformation.residualRisk, 0);
+  const allFindings = verified.items.flatMap((item) => item.derivative.publicFindings);
+  const residualRisk = verified.items.reduce((sum, item) => sum + item.derivative.residualRisk, 0);
   const manifest = {
     schema_version: "ew-safe-package-manifest-0.1",
     tool: "EW Local Sanitizer",
@@ -38,10 +38,10 @@ export function createSafePackage(capability: VerifiedExport, outputPath: string
     project_id: verified.projectId,
     package_id: randomUUID(),
     created_at: verified.verifiedAt,
-    policy_version: verified.items[0]?.transformation.policyVersion,
+    policy_version: verified.items[0]?.derivative.policyVersion,
     dictionary: {
-      version: verified.detection.dictionary.dictionaryVersion,
-      sha256: verified.detection.dictionary.dictionaryHash,
+      version: verified.dictionary.version,
+      sha256: verified.dictionary.hash,
     },
     classification: verified.classification,
     allowed_route: verified.allowedRoute,
@@ -58,9 +58,9 @@ export function createSafePackage(capability: VerifiedExport, outputPath: string
     second_scan: {
       status: "pass",
       blocking_findings: verified.secondScanBlockingFindings,
-      policy_version: verified.items[0]?.transformation.policyVersion,
-      dictionary_version: verified.detection.dictionary.dictionaryVersion,
-      dictionary_sha256: verified.detection.dictionary.dictionaryHash,
+      policy_version: verified.items[0]?.derivative.policyVersion,
+      dictionary_version: verified.dictionary.version,
+      dictionary_sha256: verified.dictionary.hash,
     },
     token_map_created: verified.tokenMapCreated,
     package_allowlist: [...allowlist],
@@ -78,14 +78,20 @@ export function createSafePackage(capability: VerifiedExport, outputPath: string
     second_scan: { status: "pass", blocking_findings: 0 },
     disclaimer: "Defense-in-depth only; absence of detection is not proof of safety.",
   };
+  const reportBuffer = jsonBuffer(report);
+  const manifestBuffer = jsonBuffer(manifest);
+  const readmeBuffer = Buffer.from(
+    "# EW Safe Package\n\nUpload only to an enterprise-approved AI environment. Keep originals, project dictionaries and .ewmap files local. A passed scan is not a confidentiality guarantee.\n",
+    "utf8",
+  );
+  for (const publicOutput of [manifestBuffer, reportBuffer, readmeBuffer]) {
+    assertVerifiedPublicOutput(capability, publicOutput.toString("utf8"));
+  }
   const entries: ZipEntry[] = [
     ...derivativeEntries,
-    { name: "SAFE-MANIFEST.json", data: jsonBuffer(manifest) },
-    { name: "DLP-REPORT.json", data: jsonBuffer(report) },
-    { name: "README-SAFE-UPLOAD.md", data: Buffer.from(
-      "# EW Safe Package\n\nUpload only to an enterprise-approved AI environment. Keep originals, project dictionaries and .ewmap files local. A passed scan is not a confidentiality guarantee.\n",
-      "utf8",
-    ) },
+    { name: "SAFE-MANIFEST.json", data: manifestBuffer },
+    { name: "DLP-REPORT.json", data: reportBuffer },
+    { name: "README-SAFE-UPLOAD.md", data: readmeBuffer },
   ];
 
   const created: string[] = [];

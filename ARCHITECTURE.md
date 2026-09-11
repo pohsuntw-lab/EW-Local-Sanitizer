@@ -84,7 +84,7 @@ Suggests P0-P3 but requires a user decision. Hard rules:
 - Encrypts with AES-256-GCM.
 - Derives the key from a user passphrase with `scrypt` and a random salt.
 - Stores salt, nonce, authentication tag and ciphertext; never stores the passphrase.
-- Stores a versioned header with explicit scrypt parameters so future readers can reproduce the KDF safely.
+- Stores a versioned, AEAD-authenticated header with explicit scrypt parameters so future readers can reproduce the KDF safely and header tampering fails closed.
 - Zeroizes in-memory plaintext buffers where the runtime permits; documents residual memory limitations honestly.
 
 JavaScript strings, values retained by callers and runtime-managed copies cannot be guaranteed to be zeroized. The implementation clears owned key/plaintext buffers on success and exception paths and documents this residual limitation.

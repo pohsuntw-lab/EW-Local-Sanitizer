@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { DictionarySnapshot } from "./dictionary.js";
+import { isAuthenticDictionarySnapshot, type DictionarySnapshot } from "./dictionary.js";
 import { normalizeSensitiveValue } from "./normalization.js";
 import type { Finding, FindingType, Severity } from "./types.js";
 
@@ -30,6 +30,7 @@ export interface DetectionContext {
 }
 
 export function detectText(text: string, context: DetectionContext): Finding[] {
+  if (!isAuthenticDictionarySnapshot(context.dictionary)) throw new Error("Untrusted dictionary snapshot");
   const findings: Finding[] = [];
   for (const detector of DETECTORS) {
     detector.pattern.lastIndex = 0;
@@ -66,13 +67,13 @@ function buildNormalizedIndex(text: string, dictionary: DictionarySnapshot): { v
   const values: string[] = [];
   const starts: number[] = [];
   const ends: number[] = [];
-  let offset = 0;
   let pendingSpace: { start: number; end: number } | undefined;
-  for (const character of text) {
-    const start = offset;
-    offset += character.length;
-    if (/\s/u.test(character)) {
-      if (values.length > 0) pendingSpace = pendingSpace ? { start: pendingSpace.start, end: offset } : { start, end: offset };
+  const segmenter = new Intl.Segmenter("und", { granularity: "grapheme" });
+  for (const part of segmenter.segment(text)) {
+    const start = part.index;
+    const end = start + part.segment.length;
+    if (/^\s+$/u.test(part.segment)) {
+      if (values.length > 0) pendingSpace = pendingSpace ? { start: pendingSpace.start, end } : { start, end };
       continue;
     }
     if (pendingSpace) {
@@ -81,11 +82,11 @@ function buildNormalizedIndex(text: string, dictionary: DictionarySnapshot): { v
       ends.push(pendingSpace.end);
       pendingSpace = undefined;
     }
-    const normalized = normalizeSensitiveValue(character, dictionary);
-    for (const normalizedCharacter of normalized) {
-      values.push(normalizedCharacter);
+    const normalized = normalizeSensitiveValue(part.segment, dictionary);
+    for (let index = 0; index < normalized.length; index += 1) {
+      values.push(normalized[index] ?? "");
       starts.push(start);
-      ends.push(offset);
+      ends.push(end);
     }
   }
   return { value: values.join(""), starts, ends };
@@ -106,7 +107,7 @@ function validTaiwanId(value: string): boolean {
 
 function removeOverlaps(findings: Finding[]): Finding[] {
   const rank: Record<Severity, number> = { low: 0, medium: 1, high: 2, critical: 3 };
-  const ordered = [...findings].sort((a, b) => a.start - b.start || rank[b.severity] - rank[a.severity] || b.end - a.end);
+  const ordered = [...findings].sort((a, b) => rank[b.severity] - rank[a.severity] || (b.end - b.start) - (a.end - a.start) || a.start - b.start);
   const accepted: Finding[] = [];
   for (const finding of ordered) if (!accepted.some((item) => finding.start < item.end && finding.end > item.start)) accepted.push(finding);
   return accepted.sort((a, b) => a.start - b.start);
