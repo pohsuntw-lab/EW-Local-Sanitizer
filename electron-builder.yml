@@ -37,6 +37,11 @@ win:
   signExecutable: false
 nsis:
   oneClick: false
+  include: build/generated/nsis-eula.nsh
+  installerLanguages:
+    - zh_TW
+    - en_US
+  multiLanguageInstaller: true
   perMachine: false
   allowElevation: false
   allowToChangeInstallationDirectory: true

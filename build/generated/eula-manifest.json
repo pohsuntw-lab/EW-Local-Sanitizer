@@ -1,0 +1,28 @@
+{
+  "format": "ewls-eula-manifest",
+  "formatVersion": "1.0",
+  "agreementVersion": "EWLS-EULA-1.0",
+  "generatedFrom": "eula/*.md",
+  "agreements": [
+    {
+      "locale": "zh-TW",
+      "agreementVersion": "EWLS-EULA-1.0",
+      "effectiveDate": "2026-09-11",
+      "rightsHolder": "具象職人股份有限公司",
+      "title": "EW Local Sanitizer 最終使用者授權協議與使用規範",
+      "sourcePath": "eula/zh-TW.md",
+      "plainTextPath": "build/generated/eula/zh-TW.txt",
+      "sha256": "ce60fadbf090ce12a7bc474cc9cf7b658eb063ed749d328652525f8096bfc235"
+    },
+    {
+      "locale": "en-US",
+      "agreementVersion": "EWLS-EULA-1.0",
+      "effectiveDate": "2026-09-11",
+      "rightsHolder": "具象職人股份有限公司",
+      "title": "EW Local Sanitizer End User License Agreement and Acceptable Use Rules",
+      "sourcePath": "eula/en-US.md",
+      "plainTextPath": "build/generated/eula/en-US.txt",
+      "sha256": "f47d79953ca95b215c63d35a956d3a288baf372362756de785ec9173b4b8b1b0"
+    }
+  ]
+}

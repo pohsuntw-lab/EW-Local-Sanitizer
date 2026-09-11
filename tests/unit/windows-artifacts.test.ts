@@ -59,6 +59,14 @@ test("rejects an Authenticode-bearing PE from the unsigned test channel", () => 
 test("Windows builder config cannot publish or silently sign", () => {
   const config = readFileSync(join(process.cwd(), "electron-builder.yml"), "utf8");
   const script = readFileSync(join(process.cwd(), "scripts/package-win.mjs"), "utf8");
+  const eulaManifest = JSON.parse(readFileSync(join(process.cwd(), "build", "generated", "eula-manifest.json"), "utf8")) as {
+    format: string;
+    formatVersion: string;
+    agreementVersion: string;
+    agreements: Array<{ locale: string; sourcePath: string; plainTextPath: string; sha256: string }>;
+  };
+  const nsisEula = readFileSync(join(process.cwd(), "build", "generated", "nsis-eula.nsh"), "utf8");
+  const smokeScript = readFileSync(join(process.cwd(), "scripts", "windows-smoke.ps1"), "utf8");
   const iconBytes = readFileSync(join(process.cwd(), "build", "icon.png"));
   const icon = PNG.sync.read(iconBytes);
   assert.match(config, /UNSIGNED-TEST-ONLY/);
@@ -66,12 +74,35 @@ test("Windows builder config cannot publish or silently sign", () => {
   assert.match(config, /signAndEditExecutable: true/);
   assert.match(config, /signExecutable: false/);
   assert.match(config, /nsis: 1\.2\.1/);
+  assert.match(config, /include: build\/generated\/nsis-eula\.nsh/);
+  assert.match(config, /installerLanguages:\s*\n\s*- zh_TW\s*\n\s*- en_US/);
+  assert.match(config, /multiLanguageInstaller: true/);
   assert.match(config, /icon: build\/icon\.png/);
   assert.match(config, /legalTrademarks: Embodied Worker/);
   assert.equal(createHash("sha256").update(iconBytes).digest("hex"), "1b8718012d27b7a2ef4c18278a5d90efc01346cff585a877e305a0e0d5818a72");
   assert.equal(icon.width, icon.height);
   assert.ok(icon.width >= 512);
   assert.equal(icon.alpha, true);
+  assert.equal(eulaManifest.format, "ewls-eula-manifest");
+  assert.equal(eulaManifest.formatVersion, "1.0");
+  assert.match(eulaManifest.agreementVersion, /^EWLS-EULA-[0-9]+\.[0-9]+$/);
+  assert.deepEqual(eulaManifest.agreements.map(({ locale }) => locale), ["zh-TW", "en-US"]);
+  for (const agreement of eulaManifest.agreements) {
+    const source = readFileSync(join(process.cwd(), agreement.sourcePath));
+    const plainText = readFileSync(join(process.cwd(), agreement.plainTextPath), "utf8");
+    assert.equal(agreement.sha256, createHash("sha256").update(source).digest("hex"));
+    assert.match(plainText, /具象職人股份有限公司|Embodied Worker Co\., Ltd\./);
+    assert.match(plainText, /第三方元件|Third-party and open-source components/);
+    assert.match(plainText, /不保證完全偵測|does not guarantee perfect detection/);
+  }
+  assert.match(nsisEula, /MUI_LICENSEPAGE_CHECKBOX/);
+  assert.match(nsisEula, /EWLSACCEPTEULA/);
+  assert.match(nsisEula, /SetErrorLevel 2/);
+  assert.match(nsisEula, /eula-acceptance\.ini/);
+  assert.match(nsisEula, /explicitAcceptance" "true/);
+  for (const agreement of eulaManifest.agreements) assert.match(nsisEula, new RegExp(agreement.sha256));
+  assert.match(smokeScript, /\/EWLSACCEPTEULA=\$silentEulaToken/);
+  assert.match(smokeScript, /\/LANG=1033/);
   assert.match(script, /publish: "never"/);
   assert.match(script, /CSC_IDENTITY_AUTO_DISCOVERY = "false"/);
   assert.match(script, /WIN_CSC_LINK/);

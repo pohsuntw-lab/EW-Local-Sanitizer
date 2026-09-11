@@ -158,6 +158,7 @@ Local logs must not contain original sensitive values or full source paths. Logs
 ## Packaging and signing
 
 - Test phase: Electron Builder creates NSIS per-user installer and portable x64 artifacts whose filenames and local build receipt say `UNSIGNED-TEST-ONLY`; publishing and signing discovery are disabled.
+- Versioned `eula/zh-TW.md` and `eula/en-US.md` files are the human-maintained installer-agreement sources. The build deterministically generates localized UTF-8 NSIS text, a locale-to-SHA-256 manifest and the custom NSIS acceptance include. Assisted fresh and upgrade installs require explicit checkbox acceptance. Silent installation fails unless it supplies `/EWLSACCEPTEULA=<agreement-version>:<selected-locale-sha256>`; successful installation writes only agreement/version/hash/locale and installation metadata to the user's application-data directory.
 - Build verification requires PE signatures, exact artifact allowlisting, SHA-256 sibling files, a safe local build receipt and proof that development-only builder/publisher packages are absent from the packaged app.
 - A least-privilege Windows CI smoke job may rebuild synthetic/test-only inputs and exercise portable launch, per-user install, installed launch and uninstall. It never uploads artifacts and does not replace named-tester physical UAT.
 - GitHub publication is limited to `START_CODEX.md`, `PRODUCT.md`, `ARCHITECTURE.md`, `ACCEPTANCE.md` and `AGENTS.md`.

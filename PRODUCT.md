@@ -17,6 +17,10 @@ The product is a pre-upload sanitization tool, not a complete endpoint DLP platf
 - Windows artifacts may be produced only as local or ephemeral CI test evidence. CI must not upload them.
 - Authenticode and public Windows binary distribution are outside the current scope. Any future change requires a new explicit owner decision, revised acceptance criteria, completed Windows UAT and an approved signing process.
 
+## Software license and installer notice
+
+EW Local Sanitizer is proprietary software of Embodied Worker Co., Ltd. / 具象職人股份有限公司. The assisted Windows installer presents a versioned Traditional Chinese or English end-user license agreement before copying files and requires an explicit, initially unselected acceptance checkbox. The agreement distinguishes ownership of the software from ownership of user documents, preserves third-party license terms, states the product's local-processing and detection limits, and does not authorize bypassing export safeguards. Internal test builds remain unsigned and are not public releases. Agreement text must receive qualified legal review before external or commercial use.
+
 ## Intended users
 
 - Employees preparing SOPs, meeting records, reports and project documents for AI knowledge forging.

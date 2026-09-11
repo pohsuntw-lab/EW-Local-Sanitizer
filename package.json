@@ -9,6 +9,7 @@
   "author": "Embodied Worker Co., Ltd.",
   "scripts": {
     "dev": "npm run build && electron .",
+    "build:eula": "node build/generate-eula-artifacts.mjs",
     "lint": "node scripts/check-source.mjs && node scripts/check-dependencies.mjs",
     "check:dependencies": "node scripts/check-dependencies.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -16,7 +17,7 @@
     "test:unit": "npm run test:compile && node --test .test-dist/tests/unit/*.test.js",
     "test:fixtures": "npm run test:compile && node --test .test-dist/tests/fixtures/*.test.js",
     "test": "npm run test:unit && npm run test:fixtures",
-    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.build.json && node scripts/build-ui.mjs",
+    "build": "npm run build:eula && node scripts/clean-dist.mjs && tsc -p tsconfig.build.json && node scripts/build-ui.mjs",
     "package:win": "npm run build && node scripts/package-win.mjs"
   },
   "engines": {
