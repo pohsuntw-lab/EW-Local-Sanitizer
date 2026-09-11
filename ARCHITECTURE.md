@@ -101,14 +101,14 @@ JavaScript strings, values retained by callers and runtime-managed copies cannot
 - Confirms no unresolved high/critical findings.
 - Builds deterministic manifest and sanitized DLP report.
 - Creates the Safe Package from an allowlist, not by zipping a working directory.
-- Writes the ZIP, checksum and receipt exclusively with cleanup of call-created partial files on write failure; existing targets are never overwritten.
+- Writes the ZIP, checksum and receipt exclusively with identity-scoped cleanup of call-created partial files on write failure; existing or path-substituted targets are never overwritten or removed. Each output is bound to its creation-time device/inode/size identity and reopened without following symbolic links before completion.
 - Runs ZIP entry inspection after creation.
 - Packaging accepts only an opaque verified-export capability created by verification; arbitrary text cannot be passed directly to the packager.
 - The capability privately retains source path/hash/size integrity probes, without retaining source text in package state. Packaging reopens sources without following symlinks and rechecks them at entry, after ZIP inspection and after receipt creation; a mismatch fails closed and cleans up artifacts created by that call.
 - Runtime validation rejects unknown classifications/routes, invalid confirmation values, duplicate source IDs and tokenized sessions without an authentic encrypted token-map artifact covering all used tokens.
 - P2 confirmation is an opaque runtime capability bound to safe hashes of the exact reviewed project, dictionary, sources, derivatives, public findings and unresolved state; stale, forged or cross-session confirmation fails closed.
 - Package basenames use a controlled ASCII format before they enter checksum or receipt metadata.
-- Reopens the ZIP and checks the allowlist, duplicates, traversal/hidden names, canonical metadata headers, entry sizes and a 128 MiB aggregate package bound. The SHA-256 of the actual completed ZIP bytes is written to a sibling `.sha256` file and local receipt, never into the ZIP itself.
+- Reopens the same created ZIP and checks its file identity, allowlist, duplicates, traversal/hidden names, canonical metadata headers, entry sizes and a 128 MiB aggregate package bound. The ZIP, checksum and receipt identities and bytes are rechecked before return. The SHA-256 of the actual completed ZIP bytes is written to a sibling `.sha256` file and local receipt, never into the ZIP itself.
 
 ## Safe Manifest minimum fields
 

@@ -1,10 +1,10 @@
-import { writeExclusiveFile } from "./exclusive-write.js";
+import { writeExclusiveFile, type WrittenFileIdentity } from "./exclusive-write.js";
 import { MAX_SAFE_PACKAGE_BYTES, MAX_SAFE_PACKAGE_ENTRIES, MAX_ZIP_ENTRY_BYTES } from "./policy.js";
 
 export interface ZipEntry { name: string; data: Buffer }
 export interface InspectedZipEntry { name: string; size: number; data: Buffer }
 
-export function writeStoreZip(path: string, entries: readonly ZipEntry[]): void {
+export function writeStoreZip(path: string, entries: readonly ZipEntry[]): WrittenFileIdentity {
   if (entries.length < 1 || entries.length > MAX_SAFE_PACKAGE_ENTRIES) throw new Error("Invalid ZIP entry count");
   const names = new Set<string>();
   const localParts: Buffer[] = [];
@@ -36,7 +36,7 @@ export function writeStoreZip(path: string, entries: readonly ZipEntry[]): void 
   end.writeUInt32LE(centralData.length, 12); end.writeUInt32LE(offset, 16);
   if (offset + centralData.length + end.length > MAX_SAFE_PACKAGE_BYTES) throw new Error("ZIP exceeds aggregate size policy");
   const archive = Buffer.concat([...localParts, centralData, end]);
-  writeExclusiveFile(path, archive);
+  return writeExclusiveFile(path, archive);
 }
 
 export function inspectStoreZip(buffer: Buffer, allowlist: ReadonlySet<string>): InspectedZipEntry[] {

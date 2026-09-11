@@ -80,6 +80,7 @@ For v0.1, F6 means local validation against `schemas/ew-safe-package-manifest-v0
 - I3: The complete plain-text workflow passes with network APIs denied and the source policy scan finds no network/telemetry path.
 - I4: Report reason, token-label and generalization injection attempts fail closed.
 - I5: Existing export targets are never overwritten; write conflicts clean up newly created package artifacts and preserve pre-existing files.
+- I6: Post-write validation and failure cleanup are bound to the exact regular files created by the export call; path replacement or symbolic-link substitution fails closed without deleting the replacement, and ZIP/checksum/receipt bytes are rechecked before completion.
 
 ## G. Windows delivery
 

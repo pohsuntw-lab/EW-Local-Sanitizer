@@ -10,6 +10,7 @@ Evidence for branch `codex/plaintext-hardening-v0.1`. All fixtures use synthetic
 | D1–D5a controlled transformation and residual risk | transformation injection/forced-delete tests plus verification high/medium keep tests | Pass for text derivatives |
 | E1–E7 authenticated versioned vault and project token scope | dictionary/token registry unit tests and tamper fixture | Pass; JavaScript zeroization limitation documented |
 | F1–F5, F7–F10 verified export, schema, allowlist, ZIP inspection and hashes | `verification-package.test.ts` | Pass for the repository v0.1 schema and single/multiple plain-text item model |
+| I5–I6 exclusive output and post-write identity | `verification-package.test.ts` write-conflict, cleanup and path-replacement tests | Pass for regular local files |
 | F6 cross-project Forge compatibility | No external schema or integration harness supplied | Pending integration; no compatibility claim |
 | G1–G4 Windows delivery | Out of scope for this branch | Not started |
 | H1–H4 nontechnical UI journey | Electron UI is out of scope for this branch | Not started |

@@ -1,8 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
-import { readFileSync, unlinkSync } from "node:fs";
 import { basename } from "node:path";
 import { assertValidManifest } from "./manifest.js";
-import { writeExclusiveFile } from "./exclusive-write.js";
+import { readWrittenFile, removeWrittenFile, writeExclusiveFile, type WrittenFileIdentity } from "./exclusive-write.js";
+import { MAX_SAFE_PACKAGE_BYTES } from "./policy.js";
 import type { PublicFinding } from "./types.js";
 import { assertVerifiedPublicOutput, assertVerifiedSourceIntegrity, verifiedPayloadForPackaging, type VerifiedExport } from "./verification.js";
 import { inspectStoreZip, writeStoreZip, type ZipEntry } from "./zip.js";
@@ -98,11 +98,11 @@ export function createSafePackage(capability: VerifiedExport, outputPath: string
     { name: "README-SAFE-UPLOAD.md", data: readmeBuffer },
   ];
 
-  const created: string[] = [];
+  const created: Array<{ path: string; identity: WrittenFileIdentity }> = [];
   try {
-    writeStoreZip(outputPath, entries);
-    created.push(outputPath);
-    const archive = readFileSync(outputPath);
+    const zipIdentity = writeStoreZip(outputPath, entries);
+    created.push({ path: outputPath, identity: zipIdentity });
+    const archive = readWrittenFile(outputPath, zipIdentity, MAX_SAFE_PACKAGE_BYTES);
     const inspected = inspectStoreZip(archive, allowlist);
     for (const derivative of derivativeEntries) {
       const stored = inspected.find((entry) => entry.name === derivative.name);
@@ -110,9 +110,10 @@ export function createSafePackage(capability: VerifiedExport, outputPath: string
     }
     assertVerifiedSourceIntegrity(capability);
     const packageHash = sha256(archive);
-    writeExclusiveFile(checksumPath, `${packageHash}  ${packageName}\n`);
-    created.push(checksumPath);
-    writeExclusiveFile(receiptPath, jsonBuffer({
+    const checksum = Buffer.from(`${packageHash}  ${packageName}\n`, "utf8");
+    const checksumIdentity = writeExclusiveFile(checksumPath, checksum);
+    created.push({ path: checksumPath, identity: checksumIdentity });
+    const receipt = jsonBuffer({
       schema_version: "ew-export-receipt-0.1",
       status: "verified",
       package_file: packageName,
@@ -120,14 +121,19 @@ export function createSafePackage(capability: VerifiedExport, outputPath: string
       package_sha256: packageHash,
       derivative_sha256: derivativeHashes,
       created_at: verified.verifiedAt,
-    }));
-    created.push(receiptPath);
+    });
+    const receiptIdentity = writeExclusiveFile(receiptPath, receipt);
+    created.push({ path: receiptPath, identity: receiptIdentity });
+    assertVerifiedSourceIntegrity(capability);
+    if (sha256(readWrittenFile(outputPath, zipIdentity, MAX_SAFE_PACKAGE_BYTES)) !== packageHash ||
+      !readWrittenFile(checksumPath, checksumIdentity, checksum.length).equals(checksum) ||
+      !readWrittenFile(receiptPath, receiptIdentity, receipt.length).equals(receipt)) {
+      throw new Error("Generated package artifacts changed before completion");
+    }
     assertVerifiedSourceIntegrity(capability);
     return { packageHash, checksumPath, receiptPath, derivativeHashes };
   } catch (error) {
-    for (const path of created.reverse()) {
-      try { unlinkSync(path); } catch { /* generated artifact cleanup is best-effort */ }
-    }
+    for (const artifact of created.reverse()) removeWrittenFile(artifact.path, artifact.identity);
     throw error;
   }
 }

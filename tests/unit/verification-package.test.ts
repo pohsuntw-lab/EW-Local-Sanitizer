@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { detectText } from "../../src/core/detectors.js";
+import { readWrittenFile, removeWrittenFile, writeExclusiveFile } from "../../src/core/exclusive-write.js";
 import { assertValidManifest } from "../../src/core/manifest.js";
 import { createSafePackage } from "../../src/core/safe-package.js";
 import { ProjectTokenRegistry, encryptTokenMap } from "../../src/core/token-vault.js";
@@ -16,6 +17,18 @@ import { dictionary, transformAll, verificationRequest, writeSource } from "../h
 
 test("rejects manifests that do not satisfy the repository v0.1 schema", () => {
   assert.throws(() => assertValidManifest({ schema_version: "ew-safe-package-manifest-0.1" }), /schema validation failed/);
+});
+
+test("binds post-write reads to the exclusively created artifact identity", () => {
+  const directory = mkdtempSync(join(tmpdir(), "ew-exclusive-identity-"));
+  const path = join(directory, "artifact.bin");
+  const identity = writeExclusiveFile(path, Buffer.from("synthetic artifact"));
+  assert.equal(readWrittenFile(path, identity, 1024).toString("utf8"), "synthetic artifact");
+  renameSync(path, join(directory, "original-artifact.bin"));
+  writeFileSync(path, "synthetic artifact");
+  assert.throws(() => readWrittenFile(path, identity, 1024), /identity or size changed/);
+  assert.equal(removeWrittenFile(path, identity), false);
+  assert.equal(readFileSync(path, "utf8"), "synthetic artifact");
 });
 
 test("blocks export bypass, unresolved findings, high keep, P3 and missing P2 confirmation", () => {
