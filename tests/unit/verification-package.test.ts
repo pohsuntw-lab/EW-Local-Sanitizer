@@ -182,6 +182,12 @@ test("writes allowlisted package, validates actual ZIP SHA-256 and excludes loca
   const injectedCounts = JSON.parse(manifestEntry.data.toString("utf8"));
   injectedCounts.finding_counts.by_type.untrusted = 1;
   assert.throws(() => assertValidManifest(injectedCounts), /schema validation/);
+  const inconsistentCounts = JSON.parse(manifestEntry.data.toString("utf8"));
+  inconsistentCounts.finding_counts.by_action.delete = (inconsistentCounts.finding_counts.by_action.delete ?? 0) + 1;
+  assert.throws(() => assertValidManifest(inconsistentCounts), /finding-count totals/);
+  const inconsistentResidualRisk = JSON.parse(manifestEntry.data.toString("utf8"));
+  inconsistentResidualRisk.residual_risk_count = (inconsistentResidualRisk.finding_counts.by_action.keep ?? 0) + 1;
+  assert.throws(() => assertValidManifest(inconsistentResidualRisk), /residual-risk count/);
   const duplicateSource = JSON.parse(manifestEntry.data.toString("utf8"));
   duplicateSource.sources.push({ ...duplicateSource.sources[0], derivative_path: "SAFE_SOURCE/source-002.md" });
   duplicateSource.package_allowlist.push("SAFE_SOURCE/source-002.md");

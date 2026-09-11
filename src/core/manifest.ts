@@ -17,6 +17,12 @@ interface ManifestSemantics {
   classification: Classification;
   allowed_route: AllowedRoute;
   sources: { source_id: string; derivative_path: string }[];
+  finding_counts: {
+    by_type: Record<string, number>;
+    by_severity: Record<string, number>;
+    by_action: Record<string, number>;
+  };
+  residual_risk_count: number;
   package_allowlist: string[];
   second_scan: { policy_version: string; dictionary_version: string; dictionary_sha256: string };
 }
@@ -37,10 +43,23 @@ function assertManifestSemantics(manifest: ManifestSemantics): void {
   if (new Set(manifest.sources.map((source) => source.source_id)).size !== manifest.sources.length) {
     throw new Error("Manifest contains duplicate source IDs");
   }
+  const typeTotal = sumCounts(manifest.finding_counts.by_type);
+  const severityTotal = sumCounts(manifest.finding_counts.by_severity);
+  const actionTotal = sumCounts(manifest.finding_counts.by_action);
+  if (typeTotal !== severityTotal || typeTotal !== actionTotal) {
+    throw new Error("Manifest finding-count totals are inconsistent");
+  }
+  if ((manifest.finding_counts.by_action.keep ?? 0) !== manifest.residual_risk_count) {
+    throw new Error("Manifest residual-risk count is inconsistent");
+  }
   if (expected.size !== manifest.sources.length + 3 || expected.size !== manifest.package_allowlist.length ||
     manifest.package_allowlist.some((entry) => !expected.has(entry))) {
     throw new Error("Manifest package allowlist is inconsistent with sources");
   }
+}
+
+function sumCounts(counts: Record<string, number>): number {
+  return Object.values(counts).reduce((total, count) => total + count, 0);
 }
 
 function formatErrors(errors: ErrorObject[] | null | undefined): string {

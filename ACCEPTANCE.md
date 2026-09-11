@@ -67,7 +67,7 @@ Version: 0.1.0 MVP
 - F9: The package checksum is SHA-256 of the actual ZIP bytes and is stored in a sibling `.sha256` file and local receipt, not inside the ZIP.
 - F10: Token labels, controlled generalizations and public report fields are validated and scanned before export.
 - F11: Verification rejects invalid runtime classification, route and confirmation fields plus duplicate source IDs; package basenames reject control characters and checksum-line injection.
-- F12: Manifest finding-count maps accept only known finding types, severities and actions, and manifest source IDs are unique.
+- F12: Manifest finding-count maps accept only known finding types, severities and actions; their dimension totals agree, residual risk equals the keep count, and manifest source IDs are unique.
 - F13: P2 does not accept a caller-provided boolean; its confirmation capability is bound to the exact project, dictionary, source and derivative/report review state, and missing, forged or stale confirmation blocks export.
 - F14: Source identity, size and SHA-256 are rechecked through Safe Package completion. A source changed after verification blocks packaging and leaves no ZIP, checksum or receipt created by that call.
 

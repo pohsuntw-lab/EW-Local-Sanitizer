@@ -127,6 +127,8 @@ JavaScript strings, values retained by callers and runtime-managed copies cannot
 
 Because an archive cannot contain its own final hash, the manifest records the package hash method (`sha256`) while the final value is stored in the sibling checksum and local receipt. Cross-project validation by EW Enterprise Secure Knowledge Forge is pending integration; the MVP validates `schemas/ew-safe-package-manifest-v0.1.schema.json` locally.
 
+Local semantic validation supplements JSON Schema by requiring type, severity and action finding-count totals to agree, residual risk to equal the keep count, unique source IDs, consistent route/second-scan bindings and an allowlist exactly derived from the source entries.
+
 ## Plain-text core boundaries
 
 Parsing, detection, policy, transformation, verification and packaging are separate modules. Session data is in memory by default and discarded when the session closes. Saving a project/session requires an encrypted local format. Logs and export receipts contain only source IDs, safe filenames, hashes, counts, status and controlled error/event codes; they never contain raw findings or full source paths.
