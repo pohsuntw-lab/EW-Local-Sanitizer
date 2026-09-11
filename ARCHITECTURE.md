@@ -7,7 +7,7 @@ Version: 0.1.0 MVP
 - Windows 10/11 x64 desktop application.
 - Electron shell with React and TypeScript UI.
 - Node/TypeScript local processing core shared by UI and CLI tests.
-- Electron Builder first outputs clearly named unsigned installer and portable artifacts for controlled Windows testing. Public artifacts require a later authorized Authenticode signing step.
+- Electron Builder outputs clearly named unsigned installer and portable artifacts only for controlled local or ephemeral CI testing. Windows executables are not GitHub publication artifacts and must not be uploaded.
 - No server component and no runtime dependency on an external API.
 
 Electron is selected for the first release because Office/PDF parsing, OCR integration and Windows packaging are more practical than a browser-only application. Binary size is secondary to verifiable local processing.
@@ -160,9 +160,9 @@ Local logs must not contain original sensitive values or full source paths. Logs
 - Test phase: Electron Builder creates NSIS per-user installer and portable x64 artifacts whose filenames and local build receipt say `UNSIGNED-TEST-ONLY`; publishing and signing discovery are disabled.
 - Build verification requires PE signatures, exact artifact allowlisting, SHA-256 sibling files, a safe local build receipt and proof that development-only builder/publisher packages are absent from the packaged app.
 - A least-privilege Windows CI smoke job may rebuild synthetic/test-only inputs and exercise portable launch, per-user install, installed launch and uninstall. It never uploads artifacts and does not replace named-tester physical UAT.
-- Public website: Authenticode-signed Windows installer and portable package.
-- Publish SHA-256 checksums and versioned release notes.
-- The website must not describe an unsigned artifact as production-ready.
+- GitHub publication is limited to `START_CODEX.md`, `PRODUCT.md`, `ARCHITECTURE.md`, `ACCEPTANCE.md` and `AGENTS.md`.
+- Windows executables, installers, portable builds and packaged binary archives are not published.
+- Authenticode and Windows binary release preparation remain out of scope unless the project owner explicitly changes the distribution policy in a later phase.
 
 ## Future phases
 

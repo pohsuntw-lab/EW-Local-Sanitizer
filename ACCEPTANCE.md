@@ -103,15 +103,16 @@ For v0.1, F6 means local validation against `schemas/ew-safe-package-manifest-v0
 
 - G1: Application runs on supported Windows 10/11 x64 test systems without administrator rights for ordinary use.
 - G2: Installer, uninstall and portable build are tested.
-- G3: Public installer is Authenticode signed; unsigned builds are labelled test-only and are not linked as production downloads.
-- G4: Website publishes version, file size, SHA-256, minimum OS and release notes.
+- G3: No Windows executable, installer, portable build or packaged binary archive is uploaded to GitHub or exposed as a public download. All generated binaries remain labelled test-only.
+- G4: GitHub publication deliverables are limited to the five AI Coding documents: `START_CODEX.md`, `PRODUCT.md`, `ARCHITECTURE.md`, `ACCEPTANCE.md` and `AGENTS.md`.
 - G5: The controlled cross-build emits exactly one Windows x64 NSIS installer and one portable executable, both named `UNSIGNED-TEST-ONLY`, plus SHA-256 sibling files and a local build receipt. Real-Windows execution remains required before G2 is complete.
 - G6: Packaging refuses signing environment inputs, disables automatic signing discovery and never invokes publishing. Unsigned outputs are not a public release.
 - G7: Artifact verification rejects missing, duplicate, unexpected, non-regular, symbolic-link, oversized or non-PE outputs and removes partial checksum/receipt evidence.
 - G8: Packaged ASAR/runtime inspection confirms the manifest schema and local OCR model/WASM resources are present while Electron Builder, publisher/update tooling, source maps and declaration files are absent.
 - G9: A least-privilege Windows CI job installs locked dependencies without lifecycle scripts, reruns lint/typecheck/synthetic tests, builds without publishing, and smoke-tests portable launch, per-user silent install, installed-app launch and uninstall. CI artifacts are not uploaded or released.
+- G10: Authenticode and public Windows binary distribution are not current acceptance requirements. Any future change requires explicit owner authorization, revised acceptance criteria, completed Windows UAT and an approved signing/custody process before distribution.
 
-G9 automated evidence: commit `27f0e69eba30b183a162acc8b523d9d8cdb92eb3` passed [Windows smoke run 34599172096](https://github.com/pohsuntw-lab/EW-Local-Sanitizer/actions/runs/34599172096). G1, G2 and H1-H4 remain subject to the separate human UAT matrix.
+G9 automated evidence: commit `f090963df853c3f33377a9408144b00eab69785c` passed [Windows smoke run 34604522383](https://github.com/pohsuntw-lab/EW-Local-Sanitizer/actions/runs/34604522383). G1, G2 and H1-H4 remain subject to the separate human UAT matrix and are not claimed as passed.
 
 ## H. User acceptance journey
 

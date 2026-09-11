@@ -38,6 +38,7 @@ Build EW Local Sanitizer v0.1.0 as a Windows-first, local-only pre-upload docume
 - Electron renderer must be sandboxed, context-isolated and Node-disabled with a no-connect CSP. Native dialogs and all core/capability state remain in main; preload exposes only the typed minimum workflow.
 - Raw findings, source full paths, token registries, dictionary snapshots and verified-export capabilities must never cross into renderer state. P2 confirmation is issued only inside the explicit reviewed-export IPC handler.
 - CI actions must use full commit SHAs and least-privilege permissions. Windows smoke CI must not upload artifacts, persist Git credentials, sign, publish or use non-synthetic documents.
+- GitHub publication is limited to `START_CODEX.md`, `PRODUCT.md`, `ARCHITECTURE.md`, `ACCEPTANCE.md` and `AGENTS.md`. Never upload Windows executables, installers, portable builds or packaged binary archives.
 
 ## Required commands
 
@@ -60,8 +61,9 @@ npm run package:win
 - Network-denied core workflow passes.
 - Synthetic fixture matrix passes, including negative and tamper cases.
 - Safe Package allowlist, ZIP post-write inspection, actual ZIP checksum and bound second scan pass.
-- Windows installer and portable artifacts are produced.
-- Public release remains blocked until Authenticode signing and user authorization.
+- Windows installer and portable artifacts are produced only as local or ephemeral CI test evidence and are never uploaded.
+- The five AI Coding documents are internally consistent and ready for owner review.
+- Authenticode and public Windows binary distribution remain out of scope unless the owner explicitly changes the distribution policy and acceptance criteria.
 - EW Enterprise Secure Knowledge Forge cross-project schema compatibility remains pending integration.
 
 ## Stop conditions

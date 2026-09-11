@@ -30,3 +30,5 @@ After approval, implement in vertical slices:
 7. Windows installer and portable packaging (authorized for unsigned test artifacts; Windows UAT pending).
 
 Use only synthetic fixtures. Do not add cloud calls or weaken a block to make a test pass. Maintain `PROJECT_STATUS.md` with evidence and the earliest incomplete lifecycle stage.
+
+GitHub publication is documents-only: publish `START_CODEX.md`, `PRODUCT.md`, `ARCHITECTURE.md`, `ACCEPTANCE.md` and `AGENTS.md`. Never upload an EXE, installer, portable build or packaged binary archive. Windows artifacts are local or ephemeral CI test evidence only. Authenticode and public binary distribution stay out of scope unless the project owner explicitly changes this policy and the acceptance criteria.

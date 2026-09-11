@@ -10,6 +10,13 @@ EW Local Sanitizer prepares enterprise documents before they are uploaded to Cha
 
 The product is a pre-upload sanitization tool, not a complete endpoint DLP platform. It does not monitor browsers, email, cloud drives or network traffic, and it cannot protect a file that was already uploaded elsewhere.
 
+## Publication boundary
+
+- GitHub publication deliverables are limited to the five AI Coding documents: `START_CODEX.md`, `PRODUCT.md`, `ARCHITECTURE.md`, `ACCEPTANCE.md` and `AGENTS.md`.
+- Windows executables, installers, portable builds and packaged binary archives must not be uploaded to GitHub or offered as public downloads.
+- Windows artifacts may be produced only as local or ephemeral CI test evidence. CI must not upload them.
+- Authenticode and public Windows binary distribution are outside the current scope. Any future change requires a new explicit owner decision, revised acceptance criteria, completed Windows UAT and an approved signing process.
+
 ## Intended users
 
 - Employees preparing SOPs, meeting records, reports and project documents for AI knowledge forging.
