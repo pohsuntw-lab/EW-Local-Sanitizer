@@ -26,7 +26,7 @@ After approval, implement in vertical slices:
 3. CSV/TSV;
 4. DOCX/XLSX/PPTX with bounded OOXML ZIP/XML parsing and format-aware second scan;
 5. PDF text/risk inspection and standalone image OCR (implemented in content policy v0.4; PDF raster OCR remains blocked/pending);
-6. Electron UI;
+6. sandboxed Electron/React UI with narrow typed IPC (implemented; Windows UAT pending);
 7. Windows installer and portable packaging.
 
 Use only synthetic fixtures. Do not add cloud calls or weaken a block to make a test pass. Maintain `PROJECT_STATUS.md` with evidence and the earliest incomplete lifecycle stage.

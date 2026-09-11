@@ -135,6 +135,8 @@ Each dictionary records its project UUID, and that UUID participates in the dict
 5. Second-scan result and export readiness.
 6. Export receipt with hashes and destination paths.
 
+The Electron UI implements these as a single guided local review journey. File selection and output dialogs run in the main process; the renderer receives source IDs, local display basenames, coverage states, masked previews, controlled action choices and safe result metadata only. It never receives raw finding values, source full paths, token registries, dictionaries after submission, or verified-export capabilities. P2 confirmation is collected only by the explicit review/export action. Closing or replacing a session clears its in-memory source/OCR and token-registry state.
+
 ## Explicit exclusions
 
 - Browser, clipboard, email or network interception.

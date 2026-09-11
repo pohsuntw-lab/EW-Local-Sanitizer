@@ -94,7 +94,7 @@ For v0.1, F6 means local validation against `schemas/ew-safe-package-manifest-v0
 - I4: Report reason, token-label and generalization injection attempts fail closed.
 - I5: Existing export targets are never overwritten; write conflicts clean up newly created package artifacts and preserve pre-existing files.
 - I6: Post-write validation and failure cleanup are bound to the exact regular files created by the export call; path replacement or symbolic-link substitution fails closed without deleting the replacement, and ZIP/checksum/receipt bytes are rechecked before completion.
-- I7: The offline dependency-policy check enforces exact direct versions, lockfile agreement, SHA-512 integrity, recorded licenses and documentation, and rejects install-script/native-build flags; the recorded baseline audit has zero known vulnerabilities.
+- I7: The offline dependency-policy check enforces exact direct versions, lockfile agreement, SHA-512 integrity, recorded licenses and documentation, and rejects unapproved install-script/native-build flags. Electron shell/install native artifacts are separately enumerated and reviewed; the recorded baseline audit has zero known vulnerabilities.
 - I8: Independent synthetic CSV/TSV positive, negative and tamper fixtures cover sensitive-cell detection, formula neutralization, malformed/binary rejection and post-verification source mutation.
 - I9: Independent synthetic DOCX/XLSX/PPTX positive, negative and tamper fixtures cover required structures, macro/content mismatch rejection, incomplete embedded-content coverage and source-integrity enforcement.
 - I10: Synthetic PDF/image tests cover text-layer extraction, image-only and active-content indicators, real offline WASM OCR, metadata stripping, flattened pixel redaction, signature mismatch and format-aware second scan.
@@ -112,3 +112,12 @@ For v0.1, F6 means local validation against `schemas/ew-safe-package-manifest-v0
 - H2: The user can understand why a file is blocked and what action is required.
 - H3: The user can locate the Safe Package and distinguish it from the local token map.
 - H4: The application never uploads the package automatically.
+
+## J. Electron UI security and workflow
+
+- J1: Renderer runs with sandbox enabled, context isolation enabled, Node integration disabled and a CSP with `connect-src 'none'`; permission requests, external navigation and new windows are denied.
+- J2: Preload exposes only typed select/scan, reviewed export and session-close calls. Renderer data contains masked findings and local display metadata but no raw finding value, full source path, registry, dictionary snapshot or export capability.
+- J3: Missing decisions, incomplete coverage, P3 routing, missing P2 confirmation and short/missing token-map passphrases remain visibly blocked.
+- J4: The explicit reviewed-export IPC action creates the P2 confirmation, performs second scan and invokes packaging in the main process; renderer cannot call the package writer directly.
+- J5: Closing or replacing a session destroys OCR resources and disposes the token registry. Automated UI-session and boundary tests pass without importing Electron into the core test runtime.
+- J6: The built renderer's initial local preview has been reviewed for layout and readable blocked states. The complete synthetic click journey and native dialogs remain pending Windows UAT before packaging begins.

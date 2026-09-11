@@ -35,6 +35,8 @@ Build EW Local Sanitizer v0.1.0 as a Windows-first, local-only pre-upload docume
 - Public reports use controlled reason codes only. Token labels and generalization replacements must be controlled policy values and scanned again.
 - Project dictionaries and token registries are encrypted local artifacts. No original dictionary/token value enters manifests, logs or Safe Packages.
 - JavaScript memory cannot promise complete zeroization; clear owned buffers in `finally` paths and document the limitation.
+- Electron renderer must be sandboxed, context-isolated and Node-disabled with a no-connect CSP. Native dialogs and all core/capability state remain in main; preload exposes only the typed minimum workflow.
+- Raw findings, source full paths, token registries, dictionary snapshots and verified-export capabilities must never cross into renderer state. P2 confirmation is issued only inside the explicit reviewed-export IPC handler.
 
 ## Required commands
 
@@ -48,7 +50,7 @@ npm run test:fixtures
 npm run build
 ```
 
-`npm run package:win` remains an intentional failing placeholder until the explicitly authorized Windows packaging phase. Do not add Electron or Windows packaging during the PDF/image slice.
+`npm run package:win` remains an intentional failing placeholder until the explicitly authorized Windows packaging phase. The Electron UI may be built and previewed locally, but do not add installer/portable configuration, signing or release automation during this slice.
 
 ## Definition of done
 

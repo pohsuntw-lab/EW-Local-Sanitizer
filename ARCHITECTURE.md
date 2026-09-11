@@ -26,6 +26,8 @@ Enterprise device
 
 The application must contain no HTTP client path used by the scanning workflow. External fonts, scripts, OCR services, crash reporting and analytics are prohibited. Update checking is outside MVP.
 
+The Electron renderer is sandboxed with Node integration disabled and context isolation enabled. A strict local CSP denies network connections, objects, frames, remote fonts and form submissions. Main-process permission requests, new windows and navigation are denied. The preload exposes only three typed operations: select-and-scan through the native dialog, reviewed export through native save dialogs, and session close.
+
 ## Modules
 
 ### 1. Intake
@@ -145,7 +147,7 @@ Local semantic validation supplements JSON Schema by requiring type, severity an
 
 Parsing, detection, policy, transformation, verification and packaging are separate modules. Session data is in memory by default and discarded when the session closes. Saving a project/session requires an encrypted local format. Logs and export receipts contain only source IDs, safe filenames, hashes, counts, status and controlled error/event codes; they never contain raw findings or full source paths.
 
-The core can prove that a P2 confirmation was issued for an exact review-state hash, but without the later UI/IPC layer it cannot prove that the issuing call originated from a physical user gesture. The future narrow IPC handler must invoke confirmation only from the explicit review action.
+The core proves that a P2 confirmation was issued for an exact review-state hash. The narrow Electron IPC handler invokes that confirmation only inside the reviewed-export action reached from the explicit UI confirmation control. This establishes the intended application boundary, although automated tests cannot prove a human physically clicked; that remains a Windows UAT item.
 
 The manifest records each source format and binds it to one or more allowlisted `.md`, `.csv`, `.tsv` or `.png` derivative paths. Verification reparses CSV/TSV derivatives, scans PDF Markdown and locally OCRs flattened PNG derivatives with the same policy and dictionary snapshot; malformed transformed structure, a mismatched `text`/`tabular`/`office`/`pdf`/`image` profile or a remaining blocking finding fails closed.
 

@@ -1,11 +1,13 @@
 {
   "name": "ew-local-sanitizer",
   "version": "0.1.0",
+  "productName": "EW Local Sanitizer",
   "private": true,
   "type": "module",
+  "main": "dist/electron/main.js",
   "description": "Windows-first local pre-upload sanitization for enterprise knowledge forging.",
   "scripts": {
-    "dev": "tsc -p tsconfig.json --noEmit --watch",
+    "dev": "npm run build && electron .",
     "lint": "node scripts/check-source.mjs && node scripts/check-dependencies.mjs",
     "check:dependencies": "node scripts/check-dependencies.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -13,7 +15,7 @@
     "test:unit": "npm run test:compile && node --test .test-dist/tests/unit/*.test.js",
     "test:fixtures": "npm run test:compile && node --test .test-dist/tests/fixtures/*.test.js",
     "test": "npm run test:unit && npm run test:fixtures",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.build.json && node scripts/build-ui.mjs",
     "package:win": "node scripts/package-win-placeholder.mjs"
   },
   "engines": {
@@ -29,11 +31,17 @@
     "jpeg-js": "0.4.4",
     "pdfjs-dist": "6.3.289",
     "pngjs": "7.0.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "tesseract-wasm": "0.11.0"
   },
   "devDependencies": {
     "@types/node": "22.20.2",
     "@types/pngjs": "6.0.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "electron": "44.3.0",
+    "esbuild-wasm": "0.28.2",
     "typescript": "5.9.3"
   }
 }
