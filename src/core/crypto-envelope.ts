@@ -91,15 +91,24 @@ function envelopeHeader(contentType: EncryptedEnvelope["content_type"], salt: Bu
 
 function parseEnvelope(buffer: Buffer, expectedType: EncryptedEnvelope["content_type"]): EncryptedEnvelope {
   const value = JSON.parse(buffer.toString("utf8")) as Partial<EncryptedEnvelope>;
+  const envelopeKeys = ["authentication_tag", "cipher", "ciphertext", "content_type", "format_version", "iv", "kdf", "salt", "scrypt"];
+  const scryptKeys = ["N", "key_length", "maxmem", "p", "r"];
   if (
+    !value || typeof value !== "object" || !hasExactKeys(value, envelopeKeys) ||
     value.format_version !== "1" || value.content_type !== expectedType || value.kdf !== "scrypt" ||
-    value.cipher !== "aes-256-gcm" || !value.scrypt ||
+    value.cipher !== "aes-256-gcm" || !value.scrypt || typeof value.scrypt !== "object" || !hasExactKeys(value.scrypt, scryptKeys) ||
     value.scrypt.N !== SCRYPT_PARAMETERS.N || value.scrypt.r !== SCRYPT_PARAMETERS.r ||
     value.scrypt.p !== SCRYPT_PARAMETERS.p || value.scrypt.key_length !== SCRYPT_PARAMETERS.keyLength ||
     value.scrypt.maxmem !== SCRYPT_PARAMETERS.maxmem || typeof value.salt !== "string" ||
     typeof value.iv !== "string" || typeof value.authentication_tag !== "string" || typeof value.ciphertext !== "string"
   ) throw new Error("Unsupported or unsafe encrypted envelope");
+  if (!Buffer.from(JSON.stringify(value), "utf8").equals(buffer)) throw new Error("Encrypted envelope is not canonical JSON");
   return value as EncryptedEnvelope;
+}
+
+function hasExactKeys(value: object, expected: readonly string[]): boolean {
+  const actual = Object.keys(value).sort();
+  return actual.length === expected.length && actual.every((key, index) => key === expected[index]);
 }
 
 function decodeBase64(value: string, expectedLength: number | undefined, label: string): Buffer {

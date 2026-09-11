@@ -53,6 +53,7 @@ Version: 0.1.0 MVP
 - E5: The versioned `.ewmap` header records KDF, explicit scrypt parameters, cipher, salt, IV and authentication tag.
 - E6: Equal normalized originals receive the same token in one project; independent project scope secrets prevent cross-project correlation, and verification rejects a transformation produced by a registry bound to another project UUID.
 - E7: Owned key/plaintext buffers are cleared on success and exception paths; documentation states JavaScript/caller memory limitations.
+- E8: Encrypted envelopes accept only the canonical versioned JSON encoding with exact header/scrypt fields; extra or duplicate keys, field reordering and trailing bytes fail closed.
 
 ## F. Safe Package
 

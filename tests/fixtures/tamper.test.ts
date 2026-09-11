@@ -19,6 +19,14 @@ test("tamper fixture matrix rejects authenticated-map ciphertext and KDF header 
   const authenticatedHeaderTamper = JSON.parse(encrypted.toString("utf8"));
   authenticatedHeaderTamper.salt = Buffer.alloc(16, 7).toString("base64");
   assert.throws(() => decryptTokenMap(Buffer.from(JSON.stringify(authenticatedHeaderTamper)), "correct horse battery staple"));
+  const extraField = { ...JSON.parse(encrypted.toString("utf8")), untrusted: "synthetic hidden data" };
+  assert.throws(() => decryptTokenMap(Buffer.from(JSON.stringify(extraField)), "correct horse battery staple"), /unsafe encrypted envelope/);
+  const duplicateKey = encrypted.toString("utf8").replace(
+    '"format_version":"1"',
+    '"format_version":"synthetic-override","format_version":"1"',
+  );
+  assert.throws(() => decryptTokenMap(Buffer.from(duplicateKey), "correct horse battery staple"), /canonical JSON/);
+  assert.throws(() => decryptTokenMap(Buffer.concat([encrypted, Buffer.from(" ")]), "correct horse battery staple"), /canonical JSON/);
 });
 
 test("tamper fixture matrix rejects every single-byte ZIP mutation and truncation", () => {
